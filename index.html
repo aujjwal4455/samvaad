@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F5F1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Samvaad">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Samvaad</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%231C1C1E'/%3E%3Ccircle cx='32' cy='32' r='12' fill='%23E8760C'/%3E%3C/svg%3E">
+<script>
+try{var t=JSON.parse(localStorage.getItem('samvaad.v3')||'{}').theme;var d=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.dataset.theme=d?'dark':'light'}catch(e){document.documentElement.dataset.theme='light'}
+</script>
+<style>
+:root{
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --bg:#F6F5F1;--surface:#fff;--ink:#1C1C1E;--ink2:#68686D;--ink3:#8E8E93;
+  --line:rgba(60,60,67,.16);--fill:rgba(118,118,128,.12);
+  --orange:#E8760C;--orange-soft:#FDEBD7;--orange-ink:#9A4E06;
+  --green:#0B8A5F;--green-soft:#DDF3EA;--coral:#C9503F;--coral-soft:#FAE3DF;
+  --bar:rgba(246,245,241,.8);
+  --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
+  --tabh:calc(56px + env(safe-area-inset-bottom,0px));
+  --fbar:calc(60px + env(safe-area-inset-top,0px));
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+:root[data-theme="dark"]{
+  --bg:#0E0E10;--surface:#1C1C1E;--ink:#F5F5F7;--ink2:#A0A0A8;--ink3:#8E8E93;
+  --line:rgba(255,255,255,.14);--fill:rgba(118,118,128,.24);
+  --orange:#FF9F43;--orange-soft:rgba(255,159,67,.16);--orange-ink:#FFB468;
+  --green:#34C48D;--green-soft:rgba(52,196,141,.16);--coral:#FF7A6B;--coral-soft:rgba(255,122,107,.16);
+  --bar:rgba(14,14,16,.8);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg)}
+body{font:17px/1.4 var(--font);color:var(--ink);-webkit-font-smoothing:antialiased;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+@media(min-width:520px){body{background:#E7E6E1}:root[data-theme="dark"] body{background:#000}#shell{box-shadow:0 0 0 .5px var(--line)}}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+svg{display:block;flex:none}
+
+#shell{position:fixed;inset:0;max-width:480px;margin:0 auto;background:var(--bg);overflow:hidden}
+#scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;scroll-padding-top:var(--fbar)}
+#scroll.feed{scroll-snap-type:y proximity}
+.page{padding:calc(var(--safe-t) + 10px) 20px calc(var(--tabh) + 32px)}
+
+/* tab bar */
+#tabs{position:absolute;left:0;right:0;bottom:0;height:var(--tabh);padding-bottom:var(--safe-b);display:flex;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);border-top:.5px solid var(--line);z-index:10}
+#tabs[hidden]{display:none}
+#tabs button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0;background:none;color:var(--ink3);font-size:10.5px;font-weight:500;letter-spacing:.01em;min-height:56px;transition:color .2s}
+#tabs button[aria-current="page"]{color:var(--ink)}
+#tabs button[aria-current="page"] svg{color:var(--orange);stroke-width:2.1}
+
+/* headings */
+.hdr{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:6px 0 20px}
+.hdr .date{color:var(--ink2);font-size:15px;margin-bottom:2px}
+.large{font-size:34px;line-height:1.1;font-weight:700;letter-spacing:-.035em}
+.lead{color:var(--ink2);font-size:16px;line-height:1.45;margin:6px 0 22px;max-width:34ch}
+.sec{font-size:22px;font-weight:700;letter-spacing:-.025em;margin:30px 0 12px}
+
+/* controls */
+.btn{min-height:50px;padding:0 20px;border-radius:16px;border:0;font-weight:600;font-size:17px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,opacity .2s,background .2s}
+.btn:active{transform:scale(.97)}
+.btn.dark{background:var(--ink);color:var(--bg)}
+.btn.soft{background:var(--fill);color:var(--ink)}
+.btn.quiet{background:none;color:var(--ink2);padding:0 12px;font-weight:500}
+.btn.sm{min-height:44px;font-size:15px;padding:0 14px;border-radius:12px}
+.btn.danger{color:var(--coral)}
+.btn.wide{width:100%}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.ibtn{width:44px;height:44px;border:0;border-radius:50%;background:none;display:grid;place-items:center;position:relative;color:var(--ink)}
+.ibtn:active{background:var(--fill)}
+.group{background:var(--surface);border-radius:20px;overflow:hidden}
+.group>*+*{border-top:.5px solid var(--line)}
+.row{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 16px;width:100%;border:0;background:none;text-align:left}
+button.row:active{background:var(--fill)}
+.row .grow{flex:1;min-width:0}
+.row .t{font-weight:600;font-size:17px;line-height:1.25;overflow-wrap:anywhere}
+.row .s{color:var(--ink2);font-size:14px;margin-top:1px}
+.srow{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:0 16px}
+.srow .val{display:flex;align-items:center;gap:2px;color:var(--ink2);min-width:0;max-width:62%}
+.srow .val span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;cursor:pointer}
+.sw{width:51px;height:31px;border-radius:99px;background:var(--fill);position:relative;flex:none;transition:background .25s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25);transition:transform .3s var(--ease)}
+[aria-checked="true"] .sw{background:var(--green)}
+[aria-checked="true"] .sw::after{transform:translateX(20px)}
+.pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:99px;font-size:13px;font-weight:600;background:var(--fill);color:var(--ink2);white-space:nowrap}
+.pill.green{background:var(--green-soft);color:var(--green)}
+.pill.orange{background:var(--orange-soft);color:var(--orange-ink)}
+.pill.red{background:var(--coral-soft);color:var(--coral)}
+.note{color:var(--ink2);font-size:14px;line-height:1.45;margin-top:10px}
+
+/* home */
+.goal{background:var(--surface);border-radius:26px;padding:20px}
+.goalrow{display:flex;align-items:center;gap:18px}
+.ring{position:relative;width:92px;height:92px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .bg{stroke:var(--fill)}
+.ring .fg{stroke:var(--green);transition:stroke-dashoffset 1.1s var(--ease)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:700;letter-spacing:-.03em}
+.gtitle{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.gsub{color:var(--ink2);font-size:15px;margin-top:2px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:20px 0}
+.day{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--ink3)}
+.day i{width:100%;max-width:36px;aspect-ratio:1;border-radius:50%;background:var(--fill);display:grid;place-items:center;color:#fff}
+.day.done i{background:var(--green)}
+.day.today i{box-shadow:inset 0 0 0 2px var(--orange)}
+.day.today.done i{box-shadow:none}
+.day.today{color:var(--ink)}
+
+/* feed */
+.fbar{position:sticky;top:0;z-index:5;height:var(--fbar);padding:calc(var(--safe-t) + 8px) 16px 8px;display:flex;gap:6px;align-items:center;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px)}
+.search{flex:1;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:13px;background:var(--fill);color:var(--ink2)}
+.search input{flex:1;min-width:0;border:0;outline:0;background:none;font-size:17px;color:var(--ink)}
+.search input::placeholder{color:var(--ink3)}
+.search:focus-within{box-shadow:0 0 0 2px var(--orange)}
+.dot{position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 2px var(--bg)}
+.dot[hidden]{display:none}
+.fcard{min-height:calc(100vh - var(--fbar));min-height:calc(100dvh - var(--fbar));padding:22px 20px calc(var(--tabh) + 14px);display:flex;flex-direction:column;scroll-snap-align:start}
+.fcard+.fcard{border-top:.5px solid var(--line)}
+.ftop{display:flex;align-items:center;justify-content:space-between}
+.tag{padding:5px 11px;border-radius:99px;background:var(--orange-soft);color:var(--orange-ink);font-size:13px;font-weight:600}
+.pos{color:var(--ink3);font-size:14px;font-variant-numeric:tabular-nums}
+.ftitle{font-size:36px;line-height:1.08;font-weight:700;letter-spacing:-.037em;margin:22px 0 8px;text-wrap:balance;overflow-wrap:anywhere}
+.fcrumb{display:flex;align-items:center;flex-wrap:wrap;gap:2px;color:var(--ink2);font-size:15px;margin-bottom:26px}
+.pts{list-style:none;margin:0 0 30px;padding:0;display:grid;gap:16px}
+.pts li{position:relative;padding-left:20px;font-size:17px;line-height:1.5}
+.pts li::before{content:"";position:absolute;left:2px;top:.63em;width:6px;height:6px;border-radius:50%;background:var(--green)}
+.factions{margin-top:auto;display:flex;gap:10px}
+.factions .dark{flex:1}
+.factions .btn.on{background:var(--orange-soft);color:var(--orange-ink)}
+.btn.on svg{fill:currentColor}
+.nextcue{align-self:center;margin-top:12px;width:44px;height:44px;border:0;background:none;color:var(--ink3);display:grid;place-items:center;border-radius:50%}
+.endcue{align-self:center;margin-top:18px;color:var(--ink3);font-size:14px}
+.empty{padding:90px 32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;min-height:60vh;justify-content:center}
+.empty .eicon{width:64px;height:64px;border-radius:50%;background:var(--fill);display:grid;place-items:center;color:var(--ink2);margin-bottom:8px}
+.empty h3{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.empty p{color:var(--ink2);max-width:30ch;margin-bottom:12px}
+
+/* options */
+.opts{margin-top:18px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:12px 14px;border-radius:16px;border:1.5px solid transparent;background:var(--surface);font-weight:500;line-height:1.35;text-align:left;margin-bottom:10px;transition:background .25s,border-color .25s,transform .15s,opacity .25s}
+.opt:not(:disabled):active{transform:scale(.985)}
+.opt .l{flex:0 0 28px;height:28px;border-radius:9px;background:var(--fill);display:grid;place-items:center;font-size:13px;font-weight:600;color:var(--ink2)}
+.opt .st{margin-left:auto;flex:none}
+.opt.right{background:var(--green-soft);border-color:var(--green);animation:pop .35s var(--ease)}
+.opt.right .st{color:var(--green)}
+.opt.wrong{background:var(--coral-soft);border-color:var(--coral);animation:pop .35s var(--ease)}
+.opt.wrong .st{color:var(--coral)}
+.opt.dim{opacity:.5}
+.opt:disabled{cursor:default}
+.exp{background:var(--surface);border-radius:20px;padding:18px;margin-top:6px;animation:rise .45s var(--ease)}
+.exp h4{margin:0 0 6px;font-size:17px;font-weight:700}
+.exp p{color:var(--ink2);font-size:16px;line-height:1.5}
+.exp .kp{margin-top:16px;padding-top:14px;border-top:.5px solid var(--line)}
+.exp .kp .pts{margin:10px 0 0;gap:11px}
+.exp .kp .pts li{font-size:16px;line-height:1.45}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+@keyframes pop{from{transform:scale(.97)}}
+
+/* sheet */
+#sheet{position:absolute;inset:0;z-index:30;pointer-events:none}
+#sheet.open{pointer-events:auto}
+#sheet .scrim{position:absolute;inset:0;background:rgba(0,0,0,.38);opacity:0;transition:opacity .35s}
+#sheet.open .scrim{opacity:1}
+#sheet .panel{position:absolute;left:0;right:0;bottom:0;max-height:90%;overflow-y:auto;background:var(--bg);border-radius:28px 28px 0 0;padding:8px 20px calc(24px + var(--safe-b));transform:translateY(104%);visibility:hidden;transition:transform .45s var(--ease),visibility 0s .45s}
+#sheet.open .panel{transform:none;visibility:visible;transition:transform .45s var(--ease)}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+.shd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.shd h3{font-size:22px;font-weight:700;letter-spacing:-.025em}
+.sq{font-size:21px;line-height:1.3;font-weight:600;letter-spacing:-.02em}
+
+/* session */
+.sess{min-height:100%;display:flex;flex-direction:column}
+.sbody{flex:1;padding:calc(var(--safe-t) + 6px) 20px 24px}
+.shead{display:flex;align-items:center;justify-content:space-between;margin:0 -8px 10px}
+.shead .spos{font-weight:600;font-variant-numeric:tabular-nums}
+.pbar{height:4px;border-radius:2px;background:var(--fill);overflow:hidden;margin-bottom:26px}
+.pbar i{display:block;height:100%;background:var(--green);border-radius:2px;transition:width .5s var(--ease)}
+.sctx{color:var(--ink2);font-size:15px;margin-bottom:10px}
+.sq.big{font-size:25px;letter-spacing:-.025em}
+.sbar{position:sticky;bottom:0;display:flex;gap:10px;padding:12px 20px calc(12px + var(--safe-b));background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);border-top:.5px solid var(--line)}
+.sbar .dark{flex:1}
+.score{font-size:76px;line-height:1;font-weight:700;letter-spacing:-.05em;margin:34px 0 6px}
+.score small{font-size:28px;font-weight:600;color:var(--ink3);letter-spacing:-.02em}
+.match{font-size:64px;line-height:1;font-weight:700;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+
+/* add */
+.ta{width:100%;min-height:190px;border:0;border-radius:20px;background:var(--surface);padding:16px;font:15px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;outline:none;color:var(--ink)}
+.ta:focus{box-shadow:0 0 0 2px var(--orange)}
+.pv{background:var(--surface);border-radius:20px;padding:16px;margin-bottom:12px}
+.pv .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pv .t{font-weight:700;font-size:18px;letter-spacing:-.015em;overflow-wrap:anywhere}
+.pv .m{color:var(--ink2);font-size:14px;margin-top:3px}
+.pv .e{font-size:14px;margin-top:8px;color:var(--coral)}
+.pv .w{font-size:14px;margin-top:8px;color:var(--orange-ink)}
+.pv details{margin-top:10px}
+.pv summary{min-height:44px;display:flex;align-items:center;color:var(--ink2);font-size:15px;cursor:pointer}
+.pv ol{padding-left:22px;margin:6px 0}
+.pv li{padding:2px 0;font-size:15px}
+.pv li.ok{color:var(--green);font-weight:600}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.btns .grow{flex:1}
+
+/* toast */
+#toast{position:absolute;left:50%;bottom:calc(var(--tabh) + 14px);transform:translate(-50%,12px);max-width:calc(100% - 40px);padding:12px 18px;border-radius:99px;background:var(--ink);color:var(--bg);font-size:15px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .3s,transform .4s var(--ease);z-index:40;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.immersive #toast{bottom:90px}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="shell">
+  <main id="scroll" aria-live="polite"></main>
+  <nav id="tabs" aria-label="Main"></nav>
+  <div id="sheet" aria-hidden="true">
+    <div class="scrim" data-act="close-sheet"></div>
+    <div class="panel" role="dialog" aria-modal="true"><div class="grab"></div><div id="sbody"></div></div>
+  </div>
+  <div id="toast" role="status"></div>
+  <input id="file" type="file" accept=".json,application/json,text/plain" hidden>
+</div>
+
+<script>
+(()=>{'use strict';
+const $=s=>document.querySelector(s);
+const S=v=>v==null?'':String(v).trim();
+const esc=v=>S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const LET='ABCD',GOAL=3,KEY='samvaad.v3';
+
+/* ---------- icons ---------- */
+const P={
+ home:'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+ learn:'<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+ practice:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/>',
+ add:'<path d="M12 5v14M5 12h14"/>',
+ bookmark:'<path d="M7 3h10a1 1 0 0 1 1 1v17l-6-4-6 4V4a1 1 0 0 1 1-1z"/>',
+ search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+ sliders:'<path d="M4 7h9M19 7h1M4 17h2M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/>',
+ check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+ x:'<path d="M6 6l12 12M18 6 6 18"/>',
+ chd:'<path d="m6 9 6 6 6-6"/>',
+ chr:'<path d="m9 6 6 6-6 6"/>',
+ moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+ copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+ down:'<path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/>',
+ up:'<path d="M12 15V4m0 0L8 8m4-4 4 4M5 20h14"/>',
+ sel:'<path d="m8 10 4-4 4 4M8 14l4 4 4-4"/>'
+};
+const ic=(n,s=22)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+
+/* ---------- storage ---------- */
+let storageOK=true;
+function lsGet(k){try{return localStorage.getItem(k)}catch(_){storageOK=false;return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(_){storageOK=false;return false}}
+function readJSON(k,fb){const x=lsGet(k);if(x==null)return fb;try{return JSON.parse(x)}catch(_){return fb}}
+try{localStorage.setItem('samvaad.probe','1');localStorage.removeItem('samvaad.probe')}catch(_){storageOK=false}
+
+const pad=n=>String(n).padStart(2,'0');
+const dateKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const todayKey=()=>dateKey(new Date());
+const slug=s=>S(s).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)||'keyword';
+
+function canonicalPaper(v){const s=S(v);const m=s.match(/^(?:paper\s*|gs\s*|general\s*studies\s*)(i{1,3}|iv|[1-4])\b/i);if(!m)return s;const n=/^[1-4]$/.test(m[1])?Number(m[1]):({i:1,ii:2,iii:3,iv:4})[m[1].toLowerCase()];return n?`GS ${n}`:s}
+function normalize(o){
+ if(!o||typeof o!=='object')return {_err:'Each item must be a JSON object or a labelled text block.'};
+ let opts=o.options||[];
+ if(!Array.isArray(opts)&&typeof opts==='object')opts=LET.split('').map(k=>opts[k]??opts[k.toLowerCase()]??'');
+ if(!Array.isArray(opts))opts=[];
+ let pts=o.points||o.keyPoints||o.key_points||[];
+ if(!Array.isArray(pts))pts=typeof pts==='string'?pts.split(/\n|\r/):[];
+ return {id:S(o.id),keyword:S(o.keyword||o.name),paper:canonicalPaper(o.paper),subject:S(o.subject),topic:S(o.topic),points:pts.map(S).filter(Boolean),question:S(o.question),options:opts.map(S),correct:S(o.correct??o.answer??o.correctAnswer),explanation:S(o.explanation),addedOn:Number(o.addedOn)||0,updatedOn:Number(o.updatedOn)||0};
+}
+function correctIndex(it){
+ if(!Array.isArray(it.options)||it.options.length!==4)return -1;
+ if(/^[A-D]$/i.test(it.correct))return LET.indexOf(it.correct.toUpperCase());
+ return it.options.findIndex(x=>x.toLowerCase()===S(it.correct).toLowerCase());
+}
+function sampleData(){const now=Date.now();return [
+{keyword:'Inter-State Council',paper:'GS 2',subject:'Polity & Governance',topic:'Federalism',points:['Article 263 empowers the President to establish an Inter-State Council for specified coordination and advisory functions.','The council was established in 1990 by a Presidential Order, following a recommendation of the Sarkaria Commission.','The Prime Minister chairs the council.','Its membership includes Chief Ministers of states and Union Territories with legislatures, among other Union-level members.','The council is advisory; it provides a forum to discuss matters of common interest between the Union and states.'],question:'Which Article of the Constitution provides for establishing an Inter-State Council?',options:['Article 262','Article 263','Article 280','Article 312'],correct:'B',explanation:'Article 263 provides for the establishment of an Inter-State Council when the President considers that public interests would be served by it.'},
+{keyword:'GST Council',paper:'GS 2',subject:'Polity & Governance',topic:'Federalism',points:['Article 279A provides for the Goods and Services Tax Council.','The President constitutes the GST Council by order under Article 279A.','The Union Finance Minister is the Chairperson.','State governments are represented by their ministers in charge of finance or taxation, or other nominated ministers.','The Council makes recommendations on key GST matters, including tax rates, exemptions and model laws.'],question:'Which Article provides for the GST Council?',options:['Article 246A','Article 269A','Article 279A','Article 280'],correct:'C',explanation:'Article 279A of the Constitution provides for the GST Council and its recommendation-making role.'},
+{keyword:'Carbon Market',paper:'GS 3',subject:'Environment',topic:'Climate Change',points:['A carbon market puts a price on greenhouse-gas emissions or on reductions in emissions.','Compliance markets operate under rules that legally bind covered entities.','Voluntary carbon markets involve credits purchased voluntarily by organisations or individuals.','A carbon credit commonly represents one metric tonne of carbon-dioxide equivalent reduced or removed, subject to the programme’s rules.','Credible market design depends on robust measurement, reporting and verification, as well as safeguards against double counting.'],question:'A carbon credit commonly represents which quantity?',options:['One metric tonne of carbon-dioxide equivalent','One kilogram of methane only','One megawatt-hour of electricity in every programme','One tonne of coal extracted'],correct:'A',explanation:'Carbon credits are commonly denominated in metric tonnes of carbon-dioxide equivalent, though programme rules determine how credits are issued and used.'},
+{keyword:'El Niño',paper:'GS 1',subject:'Geography',topic:'Climate Systems',points:['El Niño is the warm phase of the El Niño–Southern Oscillation (ENSO) pattern in the tropical Pacific.','It involves unusually warm sea-surface temperatures in the central and eastern equatorial Pacific.','It can alter atmospheric circulation and shift rainfall patterns in different regions.','Its effects vary by event and season; it does not produce identical weather outcomes everywhere.','El Niño can influence the Indian monsoon, but it is one of several factors affecting seasonal rainfall.'],question:'El Niño is most directly associated with unusual warming in which region?',options:['North Atlantic Ocean','Central and eastern equatorial Pacific Ocean','Southern Indian Ocean near Antarctica','Arctic Ocean'],correct:'B',explanation:'El Niño is characterised by warmer-than-usual sea-surface temperatures in the central and eastern equatorial Pacific as part of ENSO.'}
+].map((x,i)=>({...x,id:'k-'+slug(x.keyword),addedOn:now-(4-i)*86400000,updatedOn:0}))}
+
+function legacyDaily(d){const out={};if(d&&typeof d==='object')for(const k of Object.keys(d)){const v=d[k];if(v&&Array.isArray(v.ids))out[k]={ids:v.ids.map(String)};else if(v&&Number(v.count)>0)out[k]={ids:Array.from({length:Number(v.count)},(_,i)=>'legacy-'+i)}}return out}
+function finishItem(it,i){const n=normalize(it);return {...n,id:S(it.id)||('k-'+slug(n.keyword)),addedOn:Number(it.addedOn)||Date.now()-i*1000}}
+
+const db={items:[],saved:new Set(),seen:new Set(),daily:{},theme:null};
+(function load(){
+ let st=readJSON(KEY,null);
+ if(!st||typeof st!=='object'){
+  const it=readJSON('samvaad.v2.items',null);
+  st={items:Array.isArray(it)&&it.length?it:null,saved:readJSON('samvaad.v2.saved',[]),seen:readJSON('samvaad.v2.seen',[]),daily:readJSON('samvaad.v2.daily',{}),theme:readJSON('samvaad.theme',null)};
+ }
+ db.items=(Array.isArray(st.items)?st.items:sampleData()).map(finishItem).filter(x=>x.keyword);
+ db.saved=new Set(Array.isArray(st.saved)?st.saved:[]);
+ db.seen=new Set(Array.isArray(st.seen)?st.seen:[]);
+ db.daily=legacyDaily(st.daily);
+ db.theme=st.theme||document.documentElement.dataset.theme;
+})();
+let toastT;
+function toast(s){const el=$('#toast');el.textContent=s;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),2600)}
+function persist(){
+ const ok=lsSet(KEY,JSON.stringify({items:db.items,saved:[...db.saved],seen:[...db.seen],daily:db.daily,theme:db.theme}));
+ if(!ok)toast('This viewer is not saving data. Export a backup before closing.');
+}
+persist();
+
+/* ---------- helpers ---------- */
+const byId=id=>db.items.find(x=>x.id===id);
+const uniq=a=>[...new Set(a.filter(Boolean))];
+const cmp=(a,b)=>a.localeCompare(b);
+const paperSort=(a,b)=>{const n=x=>{const m=x.match(/^GS\s+(\d)$/);return m?Number(m[1]):99};return n(a)-n(b)||cmp(a,b)};
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const smooth=()=>reduce?'auto':'smooth';
+const todayCount=()=>(db.daily[todayKey()]?.ids||[]).length;
+function markAnswered(id){const k=todayKey();const d=db.daily[k]||(db.daily[k]={ids:[]});if(!d.ids.includes(id))d.ids.push(id)}
+function streak(){let s=0;for(let i=0;i<400;i++){const d=new Date();d.setDate(d.getDate()-i);const n=(db.daily[dateKey(d)]?.ids||[]).length;if(n>=GOAL)s++;else if(i===0)continue;else break}return s}
+
+function opts(f){
+ const base=db.items.filter(x=>!f.saved||db.saved.has(x.id));
+ const papers=uniq(base.map(x=>x.paper)).sort(paperSort);
+ if(f.paper!=='All'&&!papers.includes(f.paper))f.paper='All';
+ const p=base.filter(x=>f.paper==='All'||x.paper===f.paper);
+ const subjects=uniq(p.map(x=>x.subject)).sort(cmp);
+ if(f.subject!=='All'&&!subjects.includes(f.subject))f.subject='All';
+ const s=p.filter(x=>f.subject==='All'||x.subject===f.subject);
+ const topics=uniq(s.map(x=>x.topic)).sort(cmp);
+ if(f.topic!=='All'&&!topics.includes(f.topic))f.topic='All';
+ return {papers,subjects,topics};
+}
+function filterItems(f,q=''){
+ const n=q.trim().toLowerCase();
+ return db.items.filter(x=>(f.paper==='All'||x.paper===f.paper)&&(f.subject==='All'||x.subject===f.subject)&&(f.topic==='All'||x.topic===f.topic)&&(!f.saved||db.saved.has(x.id))&&(!n||[x.keyword,x.paper,x.subject,x.topic,x.question,x.explanation,...x.points].join(' ').toLowerCase().includes(n)));
+}
+const newF=()=>({paper:'All',subject:'All',topic:'All',saved:false});
+const isFiltered=f=>f.paper!=='All'||f.subject!=='All'||f.topic!=='All'||f.saved;
+
+/* ---------- parsing ---------- */
+function parseText(block){
+ const o={points:[],options:[]};let mode='',m;
+ for(const raw of block.split(/\r?\n/)){
+  const line=raw.trim();if(!line)continue;
+  if(m=line.match(/^(keyword|paper|subject|topic|question|correct|answer|explanation|source)\s*:\s*(.*)$/i)){const k=m[1].toLowerCase();mode=k;o[k==='answer'?'correct':k]=m[2]}
+  else if(/^(key\s*)?points\s*:?$/i.test(line))mode='points';
+  else if(m=line.match(/^\(?([A-D])[).:]\s*(.+)$/i)){o.options['ABCD'.indexOf(m[1].toUpperCase())]=m[2]}
+  else if(mode==='points'&&(m=line.match(/^(?:[-•*]|\d+[.)])\s*(.+)$/)))o.points.push(m[1]);
+  else if(mode==='explanation'||mode==='question')o[mode]=(o[mode]?o[mode]+' ':'')+line;
+ }
+ o.options=[0,1,2,3].map(i=>o.options[i]||'');
+ return normalize(o);
+}
+function parseInput(text){
+ const t=text.trim();if(!t)return [];
+ if(/^[\[{]/.test(t)){
+  try{const j=JSON.parse(t);
+   if(j&&!Array.isArray(j)&&Array.isArray(j.items)&&(j.app==='Samvaad'||j.saved||j.daily))return [{_backup:j}];
+   return (Array.isArray(j)?j:[j]).map(normalize)}
+  catch(e){return [{_err:'Invalid JSON: '+e.message+'. Check commas, quotes and brackets.'}]}
+ }
+ return t.split(/\n\s*---+\s*(?:\n|$)/).filter(x=>x.trim()).map(parseText);
+}
+function validate(it,names){
+ const r={errors:[],warnings:[],status:'new'};
+ if(it._err){r.errors.push(it._err);r.status='bad';return r}
+ for(const [k,n] of [['keyword','Keyword'],['paper','Paper'],['subject','Subject'],['topic','Topic'],['question','Question'],['explanation','Explanation']])if(!it[k])r.errors.push(n+' is missing.');
+ if(it.options.length!==4||it.options.some(x=>!x))r.errors.push(`Needs exactly 4 non-empty options (found ${it.options.filter(Boolean).length}).`);
+ else{const ix=correctIndex(it);if(ix<0)r.errors.push('Correct answer must be A, B, C or D, or exactly match one option.');else it._ix=ix}
+ if(it.points.length<5||it.points.length>10)r.errors.push(`Needs 5 to 10 key points (found ${it.points.length}).`);
+ if(it.keyword){const k=it.keyword.toLowerCase();if(names.has(k))r.errors.push('This keyword appears more than once in the paste.');names.add(k);if(db.items.some(x=>x.keyword.toLowerCase()===k))r.status='update'}
+ if(!r.errors.length&&!db.items.some(x=>x.paper===it.paper&&x.subject===it.subject&&x.topic===it.topic))r.warnings.push('New paper, subject or topic. It will appear in your filters once added.');
+ if(r.errors.length)r.status='bad';
+ return r;
+}
+
+/* ---------- state ---------- */
+let tab='home',session=null,search='',focusId='',paste='',armed='',armT;
+let learnF=newF(),pracF=newF(),lastMatch=0;
+const scrollPos={},feedAns={};
+let analysis=[];
+
+/* ---------- views ---------- */
+function tabsHTML(){
+ const T=[['home','Home'],['learn','Learn'],['practice','Practice'],['add','Add']];
+ return T.map(([k,l])=>`<button data-tab="${k}" ${tab===k&&!session?'aria-current="page"':''} aria-label="${l}">${ic(k)}<span>${l}</span></button>`).join('');
+}
+
+function viewHome(){
+ const n=todayCount(),pct=Math.min(1,n/GOAL),C=2*Math.PI*40,sk=streak(),done=n>=GOAL;
+ const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push({l:d.toLocaleDateString(undefined,{weekday:'narrow'}),done:(db.daily[dateKey(d)]?.ids||[]).length>=GOAL,today:i===0})}
+ const recent=[...db.items].sort((a,b)=>(b.updatedOn||b.addedOn)-(a.updatedOn||a.addedOn)).slice(0,4);
+ return `<div class="page">
+ <div class="hdr"><div><p class="date">${esc(new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}))}</p><h1 class="large">Today</h1></div>
+ <button class="ibtn" data-act="theme" aria-label="Switch to ${document.documentElement.dataset.theme==='dark'?'light':'dark'} appearance">${ic(document.documentElement.dataset.theme==='dark'?'sun':'moon')}</button></div>
+ <section class="goal" aria-label="Daily goal">
+  <div class="goalrow">
+   <div class="ring"><svg width="92" height="92" viewBox="0 0 92 92" fill="none" stroke-width="9" stroke-linecap="round"><circle class="bg" cx="46" cy="46" r="40"/><circle class="fg" id="ringfg" cx="46" cy="46" r="40" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${C.toFixed(2)}" data-target="${(C*(1-pct)).toFixed(2)}"/></svg><b>${Math.min(n,GOAL)}</b></div>
+   <div><div class="gtitle">${done?'Goal complete':'Daily goal'}</div><div class="gsub">${Math.min(n,GOAL)} of ${GOAL} questions</div><div class="gsub">${sk} day streak</div></div>
+  </div>
+  <div class="days" role="img" aria-label="Last 7 days">${days.map(d=>`<div class="day ${d.done?'done':''} ${d.today?'today':''}"><i>${d.done?ic('check',16):''}</i>${d.l}</div>`).join('')}</div>
+  <button class="btn dark wide" data-act="daily" ${db.items.length?'':'disabled'}>${done?'Practice more':'Start today’s questions'}</button>
+ </section>
+ ${!storageOK?`<p class="note">This viewer isn’t saving data between sessions. Use Add → Backup to keep a copy.</p>`:''}
+ <h2 class="sec">Recently added</h2>
+ ${recent.length?`<div class="group">${recent.map(x=>`<button class="row" data-act="open-learn" data-id="${esc(x.id)}"><div class="grow"><div class="t">${esc(x.keyword)}</div><div class="s">${esc(x.subject)}</div></div><span class="pill">${esc(x.paper)}</span>${ic('chr',18)}</button>`).join('')}</div>`:`<div class="group"><div class="row"><div class="grow"><div class="t">Nothing here yet</div><div class="s">Paste your first keyword in Add.</div></div></div></div>`}
+ </div>`;
+}
+
+function cardHTML(x,i,n){
+ const sv=db.saved.has(x.id);
+ return `<section class="fcard" id="c-${esc(x.id)}" data-id="${esc(x.id)}" aria-label="${esc(x.keyword)}">
+  <div class="ftop"><span class="tag">${esc(x.paper)}</span><span class="pos">${i+1} of ${n}</span></div>
+  <h2 class="ftitle">${esc(x.keyword)}</h2>
+  <p class="fcrumb">${esc(x.subject)}${ic('chr',15)}${esc(x.topic)}</p>
+  <ul class="pts">${x.points.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>
+  <div class="factions">
+   <button class="btn soft ${sv?'on':''}" data-act="save" data-id="${esc(x.id)}" data-save="${esc(x.id)}" aria-pressed="${sv}">${ic('bookmark')}<span>${sv?'Saved':'Save'}</span></button>
+   <button class="btn dark" data-act="quiz" data-id="${esc(x.id)}">Test yourself</button>
+  </div>
+  ${i<n-1?`<button class="nextcue" data-act="next-card" aria-label="Next keyword">${ic('chd')}</button>`:`<p class="endcue">That’s the last one here.</p>`}
+ </section>`;
+}
+function feedItems(){return filterItems(learnF,search).sort((a,b)=>(b.updatedOn||b.addedOn)-(a.updatedOn||a.addedOn))}
+function feedInner(arr){
+ if(arr.length)return arr.map((x,i)=>cardHTML(x,i,arr.length)).join('');
+ if(!db.items.length)return `<div class="empty"><div class="eicon">${ic('learn',28)}</div><h3>Your library is empty</h3><p>Add a keyword and it will show up here as a card.</p><button class="btn dark" data-tab="add">Add a keyword</button></div>`;
+ const savedEmpty=learnF.saved&&!db.saved.size&&!search&&learnF.paper==='All'&&learnF.subject==='All'&&learnF.topic==='All';
+ return `<div class="empty"><div class="eicon">${ic(savedEmpty?'bookmark':'search',28)}</div><h3>${savedEmpty?'Nothing saved yet':'No matches'}</h3><p>${savedEmpty?'Tap Save on any keyword and it will be kept here.':'Try a different search or loosen a filter.'}</p><button class="btn soft" data-act="clear-feed">${savedEmpty?'Show everything':'Clear search and filters'}</button></div>`;
+}
+function viewLearn(){
+ return `<div class="fbar"><label class="search">${ic('search',19)}<input id="q" type="search" placeholder="Search keywords and notes" value="${esc(search)}" aria-label="Search keywords" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+ <button class="ibtn" data-act="filters" aria-label="Filters">${ic('sliders')}<i class="dot" ${isFiltered(learnF)?'':'hidden'}></i></button></div>
+ <div id="feedlist">${feedInner(feedItems())}</div>`;
+}
+function renderFeedList(){
+ const l=$('#feedlist');if(!l)return;
+ l.innerHTML=feedInner(feedItems());$('#scroll').scrollTop=0;
+ const d=$('.fbar .dot');if(d)d.hidden=!isFiltered(learnF);
+}
+
+function srow(label,which,key,list,cur,all){
+ const v=cur==='All'?all:cur;
+ return `<div class="srow"><span>${label}</span><span class="val"><span>${esc(v)}</span>${ic('sel',18)}</span><select data-f="${which}" data-k="${key}" aria-label="${label}"><option value="All">${all}</option>${list.map(o=>`<option value="${esc(o)}" ${o===cur?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+}
+function filterRows(which){
+ const f=which==='learn'?learnF:pracF,o=opts(f);
+ return `${srow('Paper',which,'paper',o.papers,f.paper,'All papers')}${srow('Subject',which,'subject',o.subjects,f.subject,'All subjects')}${srow('Topic',which,'topic',o.topics,f.topic,'All topics')}<button class="row" role="switch" aria-checked="${f.saved}" data-act="saved-toggle" data-which="${which}"><span class="grow t" style="font-weight:400">Saved only</span><span class="sw"></span></button>`;
+}
+function filterSheetHTML(){
+ const n=feedItems().length;
+ return `<div class="shd"><h3>Filters</h3><button class="btn quiet sm" data-act="reset-learn">Reset</button></div>
+ <div class="group">${filterRows('learn')}</div>
+ <button class="btn dark wide" style="margin-top:18px" data-act="close-sheet" ${n?'':'disabled'}>${n?`Show ${n} keyword${n===1?'':'s'}`:'No keywords match'}</button>`;
+}
+
+function viewPractice(){
+ const m=filterItems(pracF).length;
+ return `<div class="page"><div class="hdr"><div><h1 class="large">Practice</h1></div></div>
+ <p class="lead" style="margin-top:-10px">Pick what to revise, then answer one question at a time.</p>
+ <div class="group" id="pf">${filterRows('practice')}</div>
+ <div style="margin:30px 2px 20px"><div class="match" id="mc">${m}</div><p style="color:var(--ink2);margin-top:6px" id="mt">${m===0?'No questions match these filters.':m===1?'question matches':'questions match'}</p></div>
+ <button class="btn dark wide" data-act="begin" ${m?'':'disabled'}>Begin practice</button>
+ ${m===0?`<button class="btn quiet wide" style="margin-top:6px" data-act="reset-practice">Reset filters</button>`:''}
+ </div>`;
+}
+function tween(el,from,to){
+ if(!el)return;
+ if(reduce||from===to){el.textContent=to;return}
+ const t0=performance.now(),d=380;
+ (function f(t){const p=Math.min(1,(t-t0)/d),e=1-Math.pow(1-p,3);el.textContent=Math.round(from+(to-from)*e);if(p<1)requestAnimationFrame(f)})(t0);
+}
+
+function optsHTML(x,chosen,act){
+ const done=chosen!=null,ci=LET.indexOf(x.correct);
+ return `<div class="opts">${x.options.map((o,i)=>{
+  let c='',st='';
+  if(done){if(i===ci){c='right';st=ic('check',20)}else if(i===chosen){c='wrong';st=ic('x',20)}else c='dim'}
+  return `<button class="opt ${c}" data-act="${act}" data-i="${i}" ${done?'disabled':''}><span class="l">${LET[i]}</span><span>${esc(o)}</span>${st?`<span class="st">${st}</span>`:''}</button>`}).join('')}</div>`;
+}
+function explainHTML(x,chosen,withPoints){
+ const ok=chosen===LET.indexOf(x.correct);
+ return `<div class="exp" id="exp"><h4 style="color:${ok?'var(--green)':'var(--coral)'}">${ok?'Correct':'Not quite'}</h4><p>${esc(x.explanation)}</p>${withPoints?`<div class="kp"><h4>Key points</h4><ul class="pts">${x.points.map(p=>`<li>${esc(p)}</li>`).join('')}</ul></div>`:''}</div>`;
+}
+function quizSheetHTML(id){
+ const x=byId(id);if(!x)return '';
+ const a=feedAns[id];
+ return `<div class="shd"><h3>${esc(x.keyword)}</h3><button class="ibtn" data-act="close-sheet" aria-label="Close" style="margin-right:-10px">${ic('x')}</button></div>
+ <p class="sq">${esc(x.question)}</p>${optsHTML(x,a,'quiz-answer')}${a!=null?explainHTML(x,a,false):''}`;
+}
+
+function viewSession(){
+ const s=session,n=s.ids.length;
+ if(s.i>=n)return viewSummary();
+ const id=s.ids[s.i],x=byId(id),a=s.answers[id],done=a!=null,last=s.i===n-1,sv=db.saved.has(id);
+ return `<div class="sess"><div class="sbody">
+  <div class="shead"><button class="ibtn" data-act="close-session" aria-label="End practice">${ic('x')}</button><span class="spos">${s.i+1} of ${n}</span><span style="width:44px"></span></div>
+  <div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${s.i+(done?1:0)}"><i style="width:${(s.i+(done?1:0))/n*100}%"></i></div>
+  <p class="sctx">${esc(x.subject)}, ${esc(x.topic)}</p>
+  <h2 class="sq big">${esc(x.question)}</h2>
+  ${optsHTML(x,a,'answer')}${done?explainHTML(x,a,true):''}
+ </div>
+ <div class="sbar"><button class="btn soft ${sv?'on':''}" data-act="save" data-id="${esc(id)}" data-save="${esc(id)}" aria-pressed="${sv}" aria-label="${sv?'Saved':'Save'}" style="padding:0 18px">${ic('bookmark')}</button>
+ <button class="btn dark" data-act="next" ${done?'':'disabled'}>${last?'Finish':'Next question'}</button></div></div>`;
+}
+function viewSummary(){
+ const s=session,n=s.ids.length,missed=s.missed.map(byId).filter(Boolean);
+ const msg=s.correct===n?'Clean sweep.':s.correct>=n/2?'Solid. A quick look at the misses will lock it in.':'Worth another pass through the notes.';
+ return `<div class="sbody"><div class="shead"><span style="width:44px"></span><span class="spos">Complete</span><button class="ibtn" data-act="close-session" aria-label="Close">${ic('x')}</button></div>
+ <div class="score">${s.correct}<small> of ${n}</small></div>
+ <p style="color:var(--ink2);font-size:18px">${msg}</p>
+ ${s.daily&&todayCount()>=GOAL?`<p style="margin-top:14px"><span class="pill green">Daily goal complete</span></p>`:''}
+ ${missed.length?`<h2 class="sec" style="font-size:20px">Worth revisiting</h2><div class="group">${missed.map(x=>`<button class="row" data-act="open-learn" data-id="${esc(x.id)}"><div class="grow"><div class="t">${esc(x.keyword)}</div><div class="s">${esc(x.topic)}</div></div>${ic('chr',18)}</button>`).join('')}</div>`:''}
+ <div style="display:grid;gap:10px;margin-top:30px"><button class="btn dark wide" data-act="again">Practice this set again</button><button class="btn soft wide" data-act="close-session">Done</button></div></div>`;
+}
+
+function previewHTML(){
+ if(!paste.trim())return '';
+ const good=analysis.filter(a=>a.r.status!=='bad'&&!a.it._backup).length;
+ const bk=analysis.find(a=>a.it._backup);
+ if(bk){const n=bk.it._backup.items.length;return `<div class="pv"><div class="top"><div class="t">Samvaad backup</div><span class="pill orange">Backup</span></div><p class="m">${n} keyword${n===1?'':'s'}, plus your saved items and progress. Restoring merges with what’s already here.</p></div><button class="btn dark wide" data-act="restore-paste">Restore backup</button>`}
+ return `<h2 class="sec" style="font-size:20px">Preview</h2>`+analysis.map(({it,r})=>{
+  const cls={new:'green',update:'orange',bad:'red'}[r.status],lab={new:'New',update:'Updates existing',bad:'Needs fixing'}[r.status];
+  return `<div class="pv"><div class="top"><div class="t">${esc(it.keyword||'Untitled')}</div><span class="pill ${cls}">${lab}</span></div>
+  ${!it._err?`<p class="m">${[it.paper,it.subject,it.topic].filter(Boolean).map(esc).join(', ')}</p>`:''}
+  ${r.errors.map(e=>`<p class="e">${esc(e)}</p>`).join('')}${r.warnings.map(w=>`<p class="w">${esc(w)}</p>`).join('')}
+  ${!it._err&&!r.errors.length?`<details><summary>Preview card</summary><b>${esc(it.question)}</b><ol type="A">${it.options.map((o,j)=>`<li ${j===it._ix?'class="ok"':''}>${esc(o)}</li>`).join('')}</ol><p class="m">${esc(it.explanation)}</p></details>`:''}</div>`}).join('')
+  +`<button class="btn dark wide" data-act="add-paste" ${good?'':'disabled'}>Add ${good} to library</button>`;
+}
+function libraryHTML(){
+ const list=[...db.items].sort((a,b)=>(b.updatedOn||b.addedOn)-(a.updatedOn||a.addedOn));
+ if(!list.length)return `<div class="group"><div class="row"><div class="grow s">No keywords yet.</div></div></div>`;
+ return `<div class="group">${list.map(x=>`<div class="row"><div class="grow"><div class="t">${esc(x.keyword)}</div><div class="s">${esc(x.paper)}, ${esc(x.topic)}</div></div><button class="btn quiet sm ${armed===x.id?'danger':''}" data-act="del" data-id="${esc(x.id)}" aria-label="Delete ${esc(x.keyword)}">${armed===x.id?'Confirm':'Delete'}</button></div>`).join('')}</div>`;
+}
+function viewAdd(){
+ return `<div class="page"><div class="hdr"><h1 class="large">Add</h1></div>
+ <p class="lead" style="margin-top:-10px">Paste a keyword with its notes and question. It appears in Learn and Practice straight away.</p>
+ <textarea id="paste" class="ta" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Paste keyword data" placeholder="Paste JSON or labelled text. Separate several keywords with ---">${esc(paste)}</textarea>
+ <div class="btns"><button class="btn soft sm" data-act="copy-format">${ic('copy',18)}Copy format</button><button class="btn soft sm" data-act="clear-paste">Clear</button></div>
+ <div id="preview">${previewHTML()}</div>
+ <h2 class="sec">Library</h2><div id="lib">${libraryHTML()}</div>
+ <h2 class="sec">Backup</h2>
+ <div class="group"><button class="row" data-act="export">${ic('up',22)}<div class="grow"><div class="t">Save backup file</div><div class="s">Send it to Files, Drive or AirDrop</div></div></button>
+ <button class="row" data-act="copy-backup">${ic('copy',22)}<div class="grow"><div class="t">Copy backup</div><div class="s">Paste it into Notes as a second copy</div></div></button>
+ <button class="row" data-act="import">${ic('down',22)}<div class="grow"><div class="t">Restore from file</div><div class="s">Works with older Samvaad backups too</div></div></button></div>
+ <p class="note">Everything stays on this device. Nothing is uploaded anywhere.</p>
+ </div>`;
+}
+
+/* ---------- render ---------- */
+function render(opt={}){
+ const sc=$('#scroll'),keep=opt.keep?sc.scrollTop:null;
+ $('#shell').classList.toggle('immersive',!!session);
+ $('#tabs').hidden=!!session;
+ sc.classList.toggle('feed',tab==='learn'&&!session);
+ sc.innerHTML=session?viewSession():tab==='home'?viewHome():tab==='learn'?viewLearn():tab==='practice'?viewPractice():viewAdd();
+ $('#tabs').innerHTML=tabsHTML();
+ if(keep!=null)sc.scrollTop=keep;
+ else if(tab==='learn'&&focusId&&!session){const c=document.getElementById('c-'+focusId);if(c){c.scrollIntoView({block:'start'})}focusId=''}
+ else sc.scrollTop=session?0:(scrollPos[tab]||0);
+ if(tab==='home'&&!session){const r=$('#ringfg');if(r)requestAnimationFrame(()=>requestAnimationFrame(()=>r.setAttribute('stroke-dashoffset',r.dataset.target)))}
+ if(tab==='practice'&&!session){const m=filterItems(pracF).length;tween($('#mc'),lastMatch,m);lastMatch=m}
+}
+function go(t){
+ const sc=$('#scroll');
+ if(t===tab&&!session){sc.scrollTo({top:0,behavior:smooth()});return}
+ if(!session)scrollPos[tab]=sc.scrollTop;
+ tab=t;session=null;closeSheet();render();
+}
+
+/* ---------- sheet ---------- */
+function openSheet(html){const s=$('#sheet');$('#sbody').innerHTML=html;s.classList.add('open');s.setAttribute('aria-hidden','false');setTimeout(()=>{const b=s.querySelector('.panel button,.panel select');if(b)b.focus({preventScroll:true})},60)}
+function closeSheet(){const s=$('#sheet');s.classList.remove('open');s.setAttribute('aria-hidden','true')}
+
+/* ---------- actions ---------- */
+function startSession(list,daily=false){
+ if(!list.length){toast('No questions match. Adjust your filters or add content.');return}
+ let pool=shuffle(list);
+ if(daily){const unseen=pool.filter(x=>!db.seen.has(x.id));const rest=pool.filter(x=>db.seen.has(x.id));pool=unseen.concat(rest).slice(0,GOAL)}
+ session={ids:pool.map(x=>x.id),i:0,answers:{},correct:0,missed:[],daily};
+ closeSheet();render();
+}
+function answer(i){
+ const s=session,id=s.ids[s.i];if(!s||s.answers[id]!=null)return;
+ s.answers[id]=i;const x=byId(id);
+ if(i===LET.indexOf(x.correct))s.correct++;else s.missed.push(id);
+ db.seen.add(id);markAnswered(id);persist();
+ render({keep:true});
+ const e=$('#exp');if(e)e.scrollIntoView({block:'nearest',behavior:smooth()});
+}
+function toggleSave(id){
+ if(db.saved.has(id))db.saved.delete(id);else db.saved.add(id);
+ persist();const on=db.saved.has(id);
+ document.querySelectorAll(`[data-save="${CSS.escape(id)}"]`).forEach(b=>{b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);const sp=b.querySelector('span');if(sp)sp.textContent=on?'Saved':'Save'});
+ toast(on?'Saved':'Removed from Saved');
+}
+function addParsed(){
+ const names=new Set();let add=0,upd=0;const now=Date.now();
+ for(const it of parseInput(paste)){
+  if(it._backup)continue;
+  const r=validate(it,names);if(r.status==='bad')continue;
+  const ix=correctIndex(it);if(ix<0)continue;
+  const ex=db.items.find(x=>x.keyword.toLowerCase()===it.keyword.toLowerCase());
+  const rec={id:ex?ex.id:('k-'+slug(it.keyword)),keyword:it.keyword,paper:it.paper,subject:it.subject,topic:it.topic,points:it.points,question:it.question,options:it.options,correct:LET[ix],explanation:it.explanation,addedOn:ex?ex.addedOn:now,updatedOn:ex?now:0};
+  if(ex){Object.assign(ex,rec);upd++}else{if(db.items.some(x=>x.id===rec.id))rec.id+='-'+now.toString(36);db.items.push(rec);add++}
+ }
+ if(!add&&!upd){toast('Fix the highlighted items first.');return}
+ paste='';persist();render({keep:true});
+ toast(`${add?add+' added':''}${add&&upd?', ':''}${upd?upd+' updated':''}`);
+}
+function backupObj(){return {app:'Samvaad',formatVersion:3,exportedAt:new Date().toISOString(),items:db.items,saved:[...db.saved],seen:[...db.seen],daily:db.daily}}
+function restoreBackup(b){
+ let add=0,upd=0;const now=Date.now();
+ for(const raw of Array.isArray(b.items)?b.items:[]){
+  const n=normalize(raw);if(n._err||!n.keyword||!n.question||correctIndex(n)<0)continue;
+  n.correct=LET[correctIndex(n)];n.id=S(raw.id)||('k-'+slug(n.keyword));n.addedOn=Number(raw.addedOn)||now;
+  const ex=db.items.find(x=>x.keyword.toLowerCase()===n.keyword.toLowerCase());
+  if(ex){Object.assign(ex,n,{id:ex.id,addedOn:ex.addedOn});upd++}else{db.items.push(n);add++}
+ }
+ const ids=new Set(db.items.map(x=>x.id));
+ (Array.isArray(b.saved)?b.saved:[]).forEach(i=>{if(ids.has(i))db.saved.add(i)});
+ (Array.isArray(b.seen)?b.seen:[]).forEach(i=>{if(ids.has(i))db.seen.add(i)});
+ const d=legacyDaily(b.daily);
+ for(const k of Object.keys(d)){const cur=db.daily[k]?.ids||[];db.daily[k]={ids:uniq(cur.concat(d[k].ids))}}
+ persist();return {add,upd};
+}
+async function copyText(t){
+ try{await navigator.clipboard.writeText(t);return true}catch(_){
+  try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}catch(_){return false}}
+}
+async function exportFile(){
+ const json=JSON.stringify(backupObj(),null,2),name=`samvaad-backup-${todayKey()}.json`;
+ try{
+  const f=new File([json],name,{type:'application/json'});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Samvaad backup'});toast('Backup shared');return}
+ }catch(e){if(e&&e.name==='AbortError')return}
+ try{const u=URL.createObjectURL(new Blob([json],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);toast('Backup file saved')}
+ catch(_){toast('Saving files isn’t available here. Use Copy backup.')}
+}
+const FORMAT=`Give me study notes for the keyword "KEYWORD" in exactly this format, with 5 to 10 key points and one multiple-choice question:
+
+Keyword: 
+Paper: GS 2
+Subject: 
+Topic: 
+Points:
+- 
+Question: 
+A) 
+B) 
+C) 
+D) 
+Correct: 
+Explanation: `;
+
+/* ---------- events ---------- */
+$('#shell').addEventListener('click',e=>{
+ const t=e.target.closest('[data-tab]');if(t){go(t.dataset.tab);return}
+ const b=e.target.closest('[data-act]');if(!b)return;
+ const a=b.dataset.act,id=b.dataset.id;
+ switch(a){
+  case 'theme':{const d=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=d;db.theme=d;persist();const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=d==='dark'?'#0E0E10':'#F6F5F1';render({keep:true});break}
+  case 'daily':startSession(db.items,true);break;
+  case 'open-learn':learnF=newF();search='';focusId=id;session=null;tab='learn';closeSheet();render();break;
+  case 'save':toggleSave(id);break;
+  case 'quiz':openSheet(quizSheetHTML(id));$('#sheet').dataset.qid=id;break;
+  case 'quiz-answer':{const q=$('#sheet').dataset.qid;if(feedAns[q]!=null)break;feedAns[q]=Number(b.dataset.i);const x=byId(q);db.seen.add(q);markAnswered(q);persist();$('#sbody').innerHTML=quizSheetHTML(q);const ex=$('#sbody #exp');if(ex)ex.scrollIntoView({block:'nearest',behavior:smooth()});break}
+  case 'close-sheet':closeSheet();break;
+  case 'next-card':{const c=b.closest('.fcard'),n=c&&c.nextElementSibling;if(n)n.scrollIntoView({block:'start',behavior:smooth()});break}
+  case 'filters':openSheet(filterSheetHTML());break;
+  case 'reset-learn':learnF=newF();$('#sbody').innerHTML=filterSheetHTML();renderFeedList();break;
+  case 'clear-feed':learnF=newF();search='';render();break;
+  case 'saved-toggle':{const w=b.dataset.which,f=w==='learn'?learnF:pracF;f.saved=!f.saved;if(w==='learn'){$('#sbody').innerHTML=filterSheetHTML();renderFeedList()}else render({keep:true});break}
+  case 'reset-practice':pracF=newF();render({keep:true});break;
+  case 'begin':startSession(filterItems(pracF));break;
+  case 'answer':answer(Number(b.dataset.i));break;
+  case 'next':if(session&&session.answers[session.ids[session.i]]!=null){session.i++;render()}break;
+  case 'again':{const ids=session.ids;startSession(ids.map(byId).filter(Boolean),false);break}
+  case 'close-session':{const wasDaily=session&&session.daily;session=null;render();break}
+  case 'copy-format':copyText(FORMAT).then(ok=>toast(ok?'Format copied. Paste it into your AI chat.':'Couldn’t copy here.'));break;
+  case 'clear-paste':paste='';render({keep:true});break;
+  case 'add-paste':addParsed();break;
+  case 'restore-paste':{try{const j=JSON.parse(paste);const r=restoreBackup(j);paste='';render({keep:true});toast(`Restored: ${r.add} added, ${r.upd} updated`)}catch(_){toast('That backup couldn’t be read.')}break}
+  case 'del':{if(armed===id){const x=byId(id);db.items=db.items.filter(i=>i.id!==id);db.saved.delete(id);db.seen.delete(id);armed='';persist();render({keep:true});toast(`Deleted ${x?x.keyword:'keyword'}`)}else{armed=id;clearTimeout(armT);armT=setTimeout(()=>{armed='';const l=$('#lib');if(l)l.innerHTML=libraryHTML()},3000);$('#lib').innerHTML=libraryHTML()}break}
+  case 'export':exportFile();break;
+  case 'copy-backup':copyText(JSON.stringify(backupObj())).then(ok=>toast(ok?'Backup copied':'Couldn’t copy here. Use Save backup file.'));break;
+  case 'import':$('#file').click();break;
+ }
+});
+$('#shell').addEventListener('change',e=>{
+ const s=e.target;
+ if(s.matches('select[data-f]')){
+  const f=s.dataset.f==='learn'?learnF:pracF,k=s.dataset.k;f[k]=s.value;
+  if(k==='paper'){f.subject='All';f.topic='All'}else if(k==='subject')f.topic='All';
+  if(s.dataset.f==='learn'){$('#sbody').innerHTML=filterSheetHTML();renderFeedList()}else render({keep:true});
+ }
+});
+let pT;
+$('#shell').addEventListener('input',e=>{
+ if(e.target.id==='q'){search=e.target.value;renderFeedList();return}
+ if(e.target.id==='paste'){
+  paste=e.target.value;clearTimeout(pT);
+  pT=setTimeout(()=>{const names=new Set();analysis=parseInput(paste).map(it=>({it,r:it._backup?{status:'backup',errors:[],warnings:[]}:validate(it,names)}));const p=$('#preview');if(p)p.innerHTML=previewHTML()},220);
+ }
+});
+$('#file').addEventListener('change',e=>{
+ const f=e.target.files&&e.target.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{try{const j=JSON.parse(String(r.result));
+  if(Array.isArray(j.items)){const x=restoreBackup(j);render({keep:true});toast(`Restored: ${x.add} added, ${x.upd} updated`)}
+  else{paste=String(r.result);const names=new Set();analysis=parseInput(paste).map(it=>({it,r:validate(it,names)}));render({keep:true});toast('Loaded. Review the preview below.')}
+ }catch(_){toast('That file couldn’t be read.')}};
+ r.readAsText(f);e.target.value='';
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')persist()});
+
+/* analysis stays in sync when add tab re-renders */
+const _render=render;
+render=function(o){if(tab==='add'&&paste.trim()){const names=new Set();analysis=parseInput(paste).map(it=>({it,r:it._backup?{status:'backup',errors:[],warnings:[]}:validate(it,names)}))}_render(o)};
+render();
+})();
+</script>
+</body>
+</html>
