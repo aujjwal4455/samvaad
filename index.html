@@ -115,6 +115,9 @@ button.row:active{background:var(--fill)}
 .pill.orange{background:var(--orange-soft);color:var(--orange-ink)}
 .pill.red{background:var(--coral-soft);color:var(--coral)}
 .pill.paper{background:var(--pcs);color:var(--pci)}
+.qmeta{display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;margin:12px 0 4px;padding:5px 10px;border-radius:99px;background:var(--orange-soft);color:var(--orange-ink);font-size:12px;font-weight:750;letter-spacing:.025em;text-transform:uppercase}
+.qmeta .qdot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.65}
+.qcount{font-size:12px;color:var(--ink3);font-weight:600;margin-top:5px}
 .note{color:var(--ink2);font-size:14px;line-height:1.45;margin-top:10px}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);padding-right:22px}
 .chips::-webkit-scrollbar{display:none}
@@ -409,16 +412,42 @@ const addDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return dateKey(d)}
 const slug=s=>S(s).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)||'keyword';
 
 function canonicalPaper(v){const s=S(v);const m=s.match(/^(?:paper\s*|gs\s*|general\s*studies\s*)(i{1,3}|iv|[1-4])\b/i);if(!m)return s;const n=/^[1-4]$/.test(m[1])?Number(m[1]):({i:1,ii:2,iii:3,iv:4})[m[1].toLowerCase()];return n?`GS ${n}`:s}
-function normalize(o){
- if(!o||typeof o!=='object')return {_err:'Each item must be a JSON object or a labelled text block.'};
- let opts=o.options||[];
+function normalizeQuestion(q,defaults={}){
+ q=q&&typeof q==='object'?q:{};
+ let opts=q.options??defaults.options??[];
  if(!Array.isArray(opts)&&typeof opts==='object')opts=LET.split('').map(k=>opts[k]??opts[k.toLowerCase()]??'');
  if(!Array.isArray(opts))opts=[];
+ const question=S(q.question??defaults.question),source=S(q.source??q.questionSource??q.question_source??defaults.source??defaults.questionSource);
+ const explicitYear=S(q.year??q.pyqYear??q.pyq_year??defaults.year??defaults.pyqYear);
+ const yr=(explicitYear.match(/(?:19|20)\d{2}/)||source.match(/(?:19|20)\d{2}/)||[])[0]||'';
+ let qn=S(q.questionNumber??q.question_number??q.qno??q.q_no??q.number??defaults.questionNumber??defaults.question_number??defaults.qno);
+ if(!qn&&source){const qm=source.match(/(?:question|q(?:uestion)?\.?\s*no\.?|q)\s*[:#.-]?\s*(\d{1,3})/i);if(qm)qn=qm[1]}
+ let rawType=S(q.type??q.questionType??q.question_type??q.isPYQ??q.is_pyq??defaults.type??defaults.questionType??defaults.question_type??defaults.isPYQ??defaults.is_pyq).toLowerCase();
+ let type='original';
+ if(rawType==='true'||/^(pyq|previous.?year|previous year question|upsc pyq)$/.test(rawType)||/\bpyq\b|previous[- ]year/i.test(rawType))type='pyq';
+ else if(rawType==='false'||/original|practice|generated|model/.test(rawType))type='original';
+ else if(/\bpyq\b|previous[- ]year|upsc.*(?:prelims|mains)|(?:prelims|mains).*upsc/i.test(source)||(yr&&qn))type='pyq';
+ const correct=S(q.correct??q.answer??q.correctAnswer??q.correct_answer??defaults.correct??defaults.answer);
+ return {question,options:opts.map(S),correct,explanation:S(q.explanation??defaults.explanation),type,year:yr,questionNumber:qn,source};
+}
+function sameQuestion(a,b){return S(a.question).trim().toLowerCase()===S(b.question).trim().toLowerCase()&&JSON.stringify((a.options||[]).map(S))===JSON.stringify((b.options||[]).map(S))&&S(a.type)===S(b.type)&&S(a.year)===S(b.year)&&S(a.questionNumber)===S(b.questionNumber)}
+function uniqueQuestions(qs){const out=[];for(const q of qs){if(!q||!q.question||!Array.isArray(q.options)||q.options.length!==4||q.options.some(v=>!S(v))||correctIndex(q)<0)continue;const found=out.find(x=>sameQuestion(x,q));if(!found)out.push(q);else if(!found.explanation&&q.explanation)found.explanation=q.explanation}return out}
+function normalize(o){
+ if(!o||typeof o!=='object')return {_err:'Each item must be a JSON object or a labelled text block.'};
  let pts=o.points||o.keyPoints||o.key_points||[];
  if(!Array.isArray(pts))pts=typeof pts==='string'?pts.split(/\n|\r/):[];
- return {id:S(o.id),keyword:S(o.keyword||o.name),paper:canonicalPaper(o.paper),subject:S(o.subject),topic:S(o.topic),points:pts.map(S).filter(Boolean),question:S(o.question),options:opts.map(S),correct:S(o.correct??o.answer??o.correctAnswer),explanation:S(o.explanation),variants:cleanVars(o.variants),evergreen:!!o.evergreen,addedOn:Number(o.addedOn)||0,updatedOn:Number(o.updatedOn)||0};
+ const defaults={source:o.source,questionSource:o.questionSource,year:o.year,pyqYear:o.pyqYear,questionNumber:o.questionNumber,question_number:o.question_number,qno:o.qno,type:o.type,questionType:o.questionType,isPYQ:o.isPYQ};
+ const fromArray=Array.isArray(o.questions)?o.questions.map(q=>normalizeQuestion(q,defaults)):[];
+ const primary=normalizeQuestion({question:o.question,options:o.options,correct:o.correct??o.answer??o.correctAnswer,explanation:o.explanation,source:o.source,year:o.year,questionNumber:o.questionNumber??o.question_number??o.qno,type:o.type??o.questionType,isPYQ:o.isPYQ},defaults);
+ let qs=fromArray.slice();
+ if(primary.question&&primary.options.length===4&&primary.options.every(Boolean)&&correctIndex(primary)>=0&&!qs.some(q=>sameQuestion(q,primary)))qs.unshift(primary);
+ const variants=(Array.isArray(o.variants)?o.variants:[]).map(q=>normalizeQuestion(q,defaults));
+ for(const q of variants)if(!qs.some(a=>sameQuestion(a,q)))qs.push(q);
+ qs=uniqueQuestions(qs);
+ const first=qs[0]||primary;
+ return {id:S(o.id),keyword:S(o.keyword||o.name),paper:canonicalPaper(o.paper),subject:S(o.subject),topic:S(o.topic),points:pts.map(S).filter(Boolean),question:first.question||S(o.question),options:first.options||[],correct:first.correct||'',explanation:first.explanation||S(o.explanation),source:first.source||S(o.source),type:first.type||'original',year:first.year||'',questionNumber:first.questionNumber||'',questions:qs,variants:qs.slice(1),evergreen:!!o.evergreen,addedOn:Number(o.addedOn)||0,updatedOn:Number(o.updatedOn)||0};
 }
-function cleanVars(v){return (Array.isArray(v)?v:[]).map(q=>({question:S(q&&q.question),options:Array.isArray(q&&q.options)?q.options.map(S):[],correct:S(q&&(q.correct??q.answer)),explanation:S(q&&q.explanation)})).filter(q=>q.question&&q.options.length===4&&q.options.every(Boolean)&&correctIndex(q)>=0)}
+function cleanVars(v){return (Array.isArray(v)?v:[]).map(q=>normalizeQuestion(q)).filter(q=>q.question&&q.options.length===4&&q.options.every(Boolean)&&correctIndex(q)>=0)}
 function correctIndex(it){
  if(!Array.isArray(it.options)||it.options.length!==4)return -1;
  if(/^[A-D]$/i.test(it.correct))return LET.indexOf(it.correct.toUpperCase());
@@ -538,11 +567,23 @@ function prio(x){
 const ranked=(a=db.items)=>a.map(x=>[x,prio(x)]).filter(e=>e[1]>-1e8).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
 function why(x){const s=db.srs[x.id];if(!s)return 'New keyword';if(s.k===0)return s.w>1?`Missed ${s.w} times`:'Missed last time';const od=dn(todayKey())-dn(s.due);if(od>0)return `${od} day${od>1?'s':''} overdue`;const d=Math.floor((Date.now()-lastTouch(x))/864e5);return d>0?`Not seen in ${d} day${d>1?'s':''}`:'Due for revision'}
 let QV={};
+function questionMetaHTML(q){
+ if(!q||S(q.type).toLowerCase()!=='pyq')return '';
+ const details=[q.year,q.questionNumber?`Q. ${q.questionNumber}`:''].filter(Boolean);
+ return `<div class="qmeta" aria-label="Previous year question${details.length?', '+esc(details.join(', ')):''}">PYQ${details.length?`<span class="qdot"></span>${details.map(esc).join(' · ')}`:''}</div>`;
+}
+function questionBank(x){
+ if(!x)return [];
+ const bank=Array.isArray(x.questions)?uniqueQuestions(x.questions.map(q=>normalizeQuestion(q))):[];
+ if(bank.length)return bank;
+ const main=normalizeQuestion(x);
+ return uniqueQuestions([main,...cleanVars(x.variants)]);
+}
 function qv(id){
  if(QV[id])return QV[id];
- const x=byId(id),vs=[{question:x.question,options:x.options,correct:x.correct,explanation:x.explanation},...(x.variants||[])],s=db.srs[id],v=vs[((s?s.r+s.w:0))%vs.length];
+ const x=byId(id),vs=questionBank(x),s=db.srs[id],v=vs[((s?s.r+s.w:0))%Math.max(1,vs.length)]||normalizeQuestion(x);
  const ix=correctIndex(v),o=shuffle([0,1,2,3]);
- return QV[id]={...x,question:v.question,options:o.map(i=>v.options[i]),correct:LET[o.indexOf(ix)],explanation:v.explanation||x.explanation};
+ return QV[id]={...x,...v,question:v.question,options:o.map(i=>v.options[i]),correct:LET[o.indexOf(ix)],explanation:v.explanation||x.explanation};
 }
 function endSess(){if(session){for(const id of session.ids)if(session.answers[id]==null){const m=metaOf(id);m.skip=(m.skip||0)+1}persistSoon()}}
 function opts(f){
@@ -559,7 +600,7 @@ function opts(f){
 }
 function filterItems(f,q=''){
  const n=q.trim().toLowerCase();
- return db.items.filter(x=>(f.paper==='All'||x.paper===f.paper)&&(f.subject==='All'||x.subject===f.subject)&&(f.topic==='All'||x.topic===f.topic)&&(!f.saved||db.saved.has(x.id))&&(!f.unread||!db.read.has(x.id))&&(!n||[x.keyword,x.paper,x.subject,x.topic,x.question,x.explanation,...x.points].join(' ').toLowerCase().includes(n)));
+ return db.items.filter(x=>(f.paper==='All'||x.paper===f.paper)&&(f.subject==='All'||x.subject===f.subject)&&(f.topic==='All'||x.topic===f.topic)&&(!f.saved||db.saved.has(x.id))&&(!f.unread||!db.read.has(x.id))&&(!n||[x.keyword,x.paper,x.subject,x.topic,x.question,x.explanation,...x.points,...questionBank(x).flatMap(q=>[q.question,q.explanation,q.source,q.year,q.questionNumber,q.type])].join(' ').toLowerCase().includes(n)));
 }
 const newF=()=>({paper:'All',subject:'All',topic:'All',saved:false,unread:false});
 const isFiltered=f=>f.paper!=='All'||f.subject!=='All'||f.topic!=='All'||f.saved||f.unread;
@@ -569,7 +610,7 @@ function parseText(block){
  const o={points:[],options:[]};let mode='',m;
  for(const raw of block.split(/\r?\n/)){
   const line=raw.trim();if(!line)continue;
-  if(m=line.match(/^(keyword|paper|subject|topic|question|correct|answer|explanation|source)\s*:\s*(.*)$/i)){const k=m[1].toLowerCase();mode=k;o[k==='answer'?'correct':k]=m[2]}
+  if(m=line.match(/^(keyword|paper|subject|topic|question|correct|answer|explanation|source|question\s*source|type|question\s*type|is\s*pyq|year|pyq\s*year|question\s*(?:number|no\.?)|q\s*no\.?|qno)\s*:\s*(.*)$/i)){const rawKey=m[1].toLowerCase().replace(/[.\s]+/g,' ').trim();const aliases={'answer':'correct','question source':'source','question type':'type','is pyq':'isPYQ','pyq year':'year','question number':'questionNumber','question no':'questionNumber','q no':'questionNumber','qno':'questionNumber'};const k=aliases[rawKey]||rawKey;mode=k;o[k]=m[2]}
   else if(/^(key\s*)?points\s*:?$/i.test(line))mode='points';
   else if(m=line.match(/^\(?([A-D])[).:]\s*(.+)$/i)){o.options['ABCD'.indexOf(m[1].toUpperCase())]=m[2]}
   else if(mode==='points'&&(m=line.match(/^(?:[-•*]|\d+[.)])\s*(.+)$/)))o.points.push(m[1]);
@@ -595,9 +636,8 @@ function validate(it,names){
  if(it.options.length!==4||it.options.some(x=>!x))r.errors.push(`Needs exactly 4 non-empty options (found ${it.options.filter(Boolean).length}).`);
  else{const ix=correctIndex(it);if(ix<0)r.errors.push('Correct answer must be A, B, C or D, or exactly match one option.');else it._ix=ix}
  if(it.points.length<5||it.points.length>10)r.errors.push(`Needs 5 to 10 key points (found ${it.points.length}).`);
- if(it.keyword){const k=it.keyword.toLowerCase();if(names.has(k))r.errors.push('This keyword appears more than once in the paste.');names.add(k);if(db.items.some(x=>x.keyword.toLowerCase()===k))r.status='update'}
+ if(it.keyword){const k=it.keyword.trim().toLowerCase(),seenInPaste=names.has(k),exists=db.items.some(x=>x.keyword.trim().toLowerCase()===k);names.add(k);if(exists||seenInPaste)r.status='update'}
  if(!r.errors.length&&!db.items.some(x=>x.paper===it.paper&&x.subject===it.subject&&x.topic===it.topic))r.warnings.push('New paper, subject or topic. It will appear in your filters once added.');
- if(!r.errors.length&&!(it.variants&&it.variants.length))r.warnings.push('No extra question variants. Add 2 or 3 so repeats test the idea, not the wording.');
  if(r.errors.length)r.status='bad';
  return r;
 }
@@ -802,7 +842,7 @@ function quizSheetHTML(id){
  const x=qv(id);if(!x)return '';
  const a=feedAns[id];
  return `<div class="shd"><h3>${esc(x.keyword)}</h3><button class="ibtn" data-act="close-sheet" aria-label="Close" style="margin-right:-10px">${ic('x')}</button></div>
- <p class="sq">${esc(x.question)}</p>${optsHTML(x,a,'quiz-answer')}${a!=null?explainHTML(x,a,false)+`<button class="btn dark wide" style="margin-top:14px" data-act="quiz-next">Continue</button>`:''}`;
+ ${questionMetaHTML(x)}<p class="sq">${esc(x.question)}</p>${optsHTML(x,a,'quiz-answer')}${a!=null?explainHTML(x,a,false)+`<button class="btn dark wide" style="margin-top:14px" data-act="quiz-next">Continue</button>`:''}`;
 }
 function viewSession(){
  const s=session,n=s.ids.length;
@@ -812,7 +852,7 @@ function viewSession(){
   <div class="shead"><button class="ibtn" data-act="close-session" aria-label="End practice">${ic('x')}</button><span class="spos">${s.i+1} of ${n}</span><span class="slot">${s.combo>=2?`<span class="combo">${ic('flame',16)}${s.combo}</span>`:''}</span></div>
   ${s.timed?`<div class="tmr ${done?'stop':''}" style="--sd:${SPRINT_MS/1000}s" role="timer" aria-label="Time left"><i></i></div>`:`<div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${s.i+(done?1:0)}"><i style="width:${(s.i+(done?1:0))/n*100}%"></i></div>`}
   <p class="sctx">${esc(x.subject)}, ${esc(x.topic)}</p>
-  <h2 class="sq big">${esc(x.question)}</h2>
+  ${questionMetaHTML(x)}<h2 class="sq big">${esc(x.question)}</h2>
   ${optsHTML(x,a,'answer')}${done?explainHTML(x,a,true):''}
  </div>
  <div class="sbar"><button class="btn soft ${sv?'on':''}" data-act="save" data-id="${esc(id)}" data-save="${esc(id)}" aria-pressed="${sv}" aria-label="${sv?'Saved':'Save'}" style="padding:0 18px">${ic('bookmark')}</button>
@@ -837,11 +877,11 @@ function previewHTML(){
  const bk=analysis.find(a=>a.it._backup);
  if(bk){const n=bk.it._backup.items.length;return `<div class="pv"><div class="top"><div class="t">Nitya backup</div><span class="pill orange">Backup</span></div><p class="m">${n} keyword${n===1?'':'s'}, plus your saved items and progress. Restoring merges with what’s already here.</p></div><button class="btn dark wide" data-act="restore-paste">Restore backup</button>`}
  return `<h2 class="sec sm">Preview</h2>`+analysis.map(({it,r})=>{
-  const cls={new:'green',update:'orange',bad:'red'}[r.status],lab={new:'New',update:'Updates existing',bad:'Needs fixing'}[r.status];
+  const cls={new:'green',update:'orange',bad:'red'}[r.status],lab={new:'New keyword',update:'Adds to keyword',bad:'Needs fixing'}[r.status];
   return `<div class="pv"><div class="top"><div class="t">${esc(it.keyword||'Untitled')}</div><span class="pill ${cls}">${lab}</span></div>
   ${!it._err?`<p class="m">${[it.paper,it.subject,it.topic].filter(Boolean).map(esc).join(', ')}</p>`:''}
   ${r.errors.map(e=>`<p class="e">${esc(e)}</p>`).join('')}${r.warnings.map(w=>`<p class="w">${esc(w)}</p>`).join('')}
-  ${!it._err&&!r.errors.length?`<details><summary>Preview card</summary><b>${esc(it.question)}</b><ol type="A">${it.options.map((o,j)=>`<li ${j===it._ix?'class="ok"':''}>${esc(o)}</li>`).join('')}</ol><p class="m">${esc(it.explanation)}</p></details>`:''}</div>`}).join('')
+  ${!it._err&&!r.errors.length?`<details><summary>Preview question${it.type==='pyq'?' · PYQ'+(it.year?' '+esc(it.year):''):''}</summary>${questionMetaHTML(it)}<b>${esc(it.question)}</b><ol type="A">${it.options.map((o,j)=>`<li ${j===it._ix?'class="ok"':''}>${esc(o)}</li>`).join('')}</ol><p class="m">${esc(it.explanation)}</p></details>`:''}</div>`}).join('')
   +`<button class="btn dark wide" data-act="add-paste" ${good?'':'disabled'}>Add ${good} to library</button>`;
 }
 function libList(){
@@ -854,11 +894,13 @@ function libraryHTML(){
  return `<div class="libhead"><span>${list.length} keyword${list.length===1?'':'s'}</span>${sel?`<button class="btn quiet xs" data-act="lib-cancel">Cancel</button>`:`<button class="btn soft xs" data-act="lib-select">Select</button>`}</div>
  ${list.length?`<div class="group">${list.map(x=>{
   const on=sel&&sel.has(x.id);
-  return `<button class="row" data-act="${sel?'lib-pick':'lib-open'}" data-id="${esc(x.id)}">${sel?`<span class="chk ${on?'on':''}">${on?ic('check',14):''}</span>`:`<i class="sdot ${stateOf(x.id)}" title="${stateOf(x.id)}"></i>`}<div class="grow"><div class="t">${esc(x.keyword)}</div><div class="s one">${esc(x.subject)}, ${esc(x.topic)}</div></div><span class="pill paper ${paperCls(x.paper)}">${esc(x.paper)}</span>${sel?'':ic('chr',18)}</button>`}).join('')}</div>`:`<div class="group"><div class="row"><div class="grow s">No keywords match “${esc(libQ)}”.</div></div></div>`}
+  return `<button class="row" data-act="${sel?'lib-pick':'lib-open'}" data-id="${esc(x.id)}">${sel?`<span class="chk ${on?'on':''}">${on?ic('check',14):''}</span>`:`<i class="sdot ${stateOf(x.id)}" title="${stateOf(x.id)}"></i>`}<div class="grow"><div class="t">${esc(x.keyword)}</div><div class="s one">${esc(x.subject)}, ${esc(x.topic)} · ${questionBank(x).length} question${questionBank(x).length===1?'':'s'}</div></div><span class="pill paper ${paperCls(x.paper)}">${esc(x.paper)}</span>${sel?'':ic('chr',18)}</button>`}).join('')}</div>`:`<div class="group"><div class="row"><div class="grow s">No keywords match “${esc(libQ)}”.</div></div></div>`}
  ${sel?`<div class="selbar"><span class="grow">${sel.size} selected</span><button class="btn quiet xs" data-act="lib-all">${sel.size===list.length?'None':'All'}</button><button class="btn red xs" data-act="lib-del-sel" ${sel.size?'':'disabled'}>${ic('trash',16)}Delete</button></div>`:''}`;
 }
 function itemText(x){
- return `Keyword: ${x.keyword}\nPaper: ${x.paper}\nSubject: ${x.subject}\nTopic: ${x.topic}\nPoints:\n${x.points.map(p=>'- '+p).join('\n')}\nQuestion: ${x.question}\n${x.options.map((o,i)=>`${LET[i]}) ${o}`).join('\n')}\nCorrect: ${x.correct}\nExplanation: ${x.explanation}`;
+ const bank=questionBank(x);
+ const qs=bank.map((q,i)=>`${i?'\n\n---\n\n':''}${q.type==='pyq'?`Type: PYQ\n${q.year?`Year: ${q.year}\n`:''}${q.questionNumber?`Question Number: ${q.questionNumber}\n`:''}${q.source?`Source: ${q.source}\n`:''}`:`Type: Original\n`}Question: ${q.question}\n${q.options.map((o,j)=>`${LET[j]}) ${o}`).join('\n')}\nCorrect: ${q.correct}\nExplanation: ${q.explanation}`).join('');
+ return `Keyword: ${x.keyword}\nPaper: ${x.paper}\nSubject: ${x.subject}\nTopic: ${x.topic}\nPoints:\n${x.points.map(p=>'- '+p).join('\n')}\n${qs}`;
 }
 function itemSheetHTML(id){
  const x=byId(id);if(!x)return '';
@@ -866,7 +908,7 @@ function itemSheetHTML(id){
  const info=!s||s.r+s.w===0?'Not attempted yet':`Answered ${s.r+s.w} time${s.r+s.w===1?'':'s'}, ${Math.round(s.r/(s.r+s.w)*100)}% correct`;
  return `<div class="shd"><h3>${esc(x.keyword)}</h3><button class="ibtn" data-act="close-sheet" aria-label="Close" style="margin-right:-10px">${ic('x')}</button></div>
  <div class="minirow" style="margin:-6px 0 4px"><span class="pill paper ${paperCls(x.paper)}">${esc(x.paper)}</span><span class="pill ${st==='mastered'?'green':st==='learning'?'orange':''}">${st==='new'?'New':st==='mastered'?'Mastered':'Learning'}</span></div>
- <p class="note">${esc(x.subject)}, ${esc(x.topic)}. ${x.points.length} key points. ${info}.</p>
+ <p class="note">${esc(x.subject)}, ${esc(x.topic)}. ${x.points.length} key points · ${questionBank(x).length} question${questionBank(x).length===1?'':'s'}. ${info}.</p>
  <div class="sgrid"><button class="btn dark wide" data-act="open-learn" data-id="${esc(id)}">Open in Learn</button>
  <div class="sgrid two" style="margin:0"><button class="btn soft" data-act="quiz" data-id="${esc(id)}">Test yourself</button><button class="btn soft" data-act="copy-item" data-id="${esc(id)}">${ic('copy',18)}Copy text</button></div>
  <button class="btn quiet danger wide" data-act="item-del" data-id="${esc(id)}">${ic('trash',18)}Delete keyword</button></div>`;
@@ -875,7 +917,7 @@ function viewAdd(){
  const titles={add:'Add keywords',library:'Library',backup:'Backup'};
  const seg=`<div class="seg" role="group" aria-label="Section">${[['add','Paste'],['library','Library'],['backup','Backup']].map(([k,l])=>`<button data-act="seg" data-v="${k}" aria-pressed="${addSeg===k}">${l}</button>`).join('')}</div>`;
  let body='';
- if(addSeg==='add')body=`<p class="lead">Paste a keyword with its notes and question. It appears in Learn and Practice straight away.</p>
+ if(addSeg==='add')body=`<p class="lead">Paste a keyword with its notes and one or more MCQs. Repeat a keyword to add more questions to the same card. Keywords stay unique.</p>
  <textarea id="paste" class="ta" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Paste keyword data" placeholder="Paste JSON or labelled text. Separate several keywords with ---">${esc(paste)}</textarea>
  <div class="btns"><button class="btn soft sm" data-act="paste-clip">${ic('clip',18)}Paste</button><button class="btn soft sm" data-act="copy-format">${ic('copy',18)}Copy format</button><button class="btn quiet sm" data-act="clear-paste">Clear</button></div>
  <div id="preview">${previewHTML()}</div>`;
@@ -989,27 +1031,37 @@ function deleteWithUndo(ids){
  toast(n===1?`Deleted ${lastDel.items[0].keyword}`:`Deleted ${n} keywords`,{label:'Undo',fn:undoDelete});
 }
 function addParsed(){
- const names=new Set();let add=0,upd=0;const now=Date.now();
+ const names=new Set(),added=new Set(),updated=new Set();let bad=0;const now=Date.now();
  for(const it of parseInput(paste)){
   if(it._backup)continue;
-  const r=validate(it,names);if(r.status==='bad')continue;
-  const ix=correctIndex(it);if(ix<0)continue;
-  const ex=db.items.find(x=>x.keyword.toLowerCase()===it.keyword.toLowerCase());
-  const rec={id:ex?ex.id:('k-'+slug(it.keyword)),keyword:it.keyword,paper:it.paper,subject:it.subject,topic:it.topic,points:it.points,question:it.question,options:it.options,correct:LET[ix],explanation:it.explanation,variants:it.variants||[],evergreen:!!it.evergreen,addedOn:ex?ex.addedOn:now,updatedOn:ex?now:0};
-  if(ex){Object.assign(ex,rec);upd++}else{if(db.items.some(x=>x.id===rec.id))rec.id+='-'+now.toString(36);db.items.push(rec);add++}
+  const r=validate(it,names);if(r.status==='bad'){bad++;continue}
+  const incoming=questionBank(it);if(!incoming.length){bad++;continue}
+  let ex=db.items.find(x=>x.keyword.trim().toLowerCase()===it.keyword.trim().toLowerCase());
+  if(!ex){let id='k-'+slug(it.keyword);if(db.items.some(x=>x.id===id))id+='-'+now.toString(36);const first=incoming[0];
+   ex={id,keyword:it.keyword.trim(),paper:it.paper,subject:it.subject,topic:it.topic,points:it.points,question:first.question,options:first.options,correct:first.correct,explanation:first.explanation,source:first.source,type:first.type,year:first.year,questionNumber:first.questionNumber,questions:[],variants:[],evergreen:!!it.evergreen,addedOn:now,updatedOn:0};
+   db.items.push(ex);added.add(ex.id);
+  }else if(!added.has(ex.id))updated.add(ex.id);
+  const combined=uniqueQuestions([...(Array.isArray(ex.questions)?ex.questions:questionBank(ex)),...incoming]);
+  ex.questions=combined;const first=combined[0]||incoming[0];
+  ex.keyword=ex.keyword||it.keyword.trim();
+  ex.paper=it.paper||ex.paper;ex.subject=it.subject||ex.subject;ex.topic=it.topic||ex.topic;
+  if(Array.isArray(it.points)&&it.points.length)ex.points=it.points;
+  ex.evergreen=!!(it.evergreen||ex.evergreen);ex.variants=combined.slice(1);
+  ex.question=first.question;ex.options=first.options;ex.correct=first.correct;ex.explanation=first.explanation;ex.source=first.source;ex.type=first.type;ex.year=first.year;ex.questionNumber=first.questionNumber;ex.updatedOn=ex.addedOn===now?0:now;
+  delete QV[ex.id];
  }
- if(!add&&!upd){toast('Fix the highlighted items first.');return}
+ if(!added.size&&!updated.size){toast(bad?'Fix the highlighted items first.':'No valid questions found.');return}
  paste='';persist();render({keep:true});
- toast(`${add?add+' added':''}${add&&upd?', ':''}${upd?upd+' updated':''}`);
+ const a=added.size,u=updated.size;toast(`${a?a+' keyword'+(a===1?'':'s')+' added':''}${a&&u?', ':''}${u?u+' keyword'+(u===1?'':'s')+' updated':''}${bad?` · ${bad} skipped`:''}`);
 }
-function backupObj(){return {app:'Nitya',formatVersion:4,exportedAt:new Date().toISOString(),items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,daily:db.daily,goal:db.goal,flags:{meta:db.flags.meta||{},kh:db.flags.kh||[]}}}
+function backupObj(){return {app:'Nitya',formatVersion:5,exportedAt:new Date().toISOString(),items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,daily:db.daily,goal:db.goal,flags:{meta:db.flags.meta||{},kh:db.flags.kh||[]}}}
 function restoreBackup(b){
  let add=0,upd=0;const now=Date.now(),map={};
  for(const raw of Array.isArray(b.items)?b.items:[]){
-  const n=normalize(raw);if(n._err||!n.keyword||!n.question||correctIndex(n)<0)continue;
-  n.correct=LET[correctIndex(n)];n.id=S(raw.id)||('k-'+slug(n.keyword));n.addedOn=Number(raw.addedOn)||now;
-  const ex=db.items.find(x=>x.keyword.toLowerCase()===n.keyword.toLowerCase());
-  if(ex){map[n.id]=ex.id;Object.assign(ex,n,{id:ex.id,addedOn:ex.addedOn});upd++}else{map[n.id]=n.id;db.items.push(n);add++}
+  const n=normalize(raw);if(n._err||!n.keyword||!questionBank(n).length)continue;
+  n.id=S(raw.id)||('k-'+slug(n.keyword));n.addedOn=Number(raw.addedOn)||now;
+  const ex=db.items.find(x=>x.keyword.trim().toLowerCase()===n.keyword.trim().toLowerCase());
+  if(ex){map[n.id]=ex.id;const combined=uniqueQuestions([...questionBank(ex),...questionBank(n)]);Object.assign(ex,n,{id:ex.id,addedOn:ex.addedOn,questions:combined,variants:combined.slice(1),question:combined[0].question,options:combined[0].options,correct:combined[0].correct,explanation:combined[0].explanation});upd++}else{map[n.id]=n.id;db.items.push(n);add++}
  }
  const ids=new Set(db.items.map(x=>x.id)),m=i=>ids.has(map[i]||i)?(map[i]||i):null;
  (Array.isArray(b.saved)?b.saved:[]).forEach(i=>{const k=m(i);if(k)db.saved.add(k)});
@@ -1037,7 +1089,7 @@ async function exportFile(){
  try{const u=URL.createObjectURL(new Blob([json],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);stamp();toast('Backup file saved');if(tab==='add')render({keep:true})}
  catch(_){toast('Saving files isn’t available here. Use Copy backup.')}
 }
-const FORMAT=`Give me study notes for the keyword "KEYWORD" in exactly this format, with 5 to 10 key points and one multiple-choice question:
+const FORMAT=`Give me study notes for the keyword "KEYWORD" in exactly this format, with 5 to 10 key points and one or more MCQs. Repeat the block with the same keyword to add more questions to one keyword card. Mark a question Type: PYQ and include Year, Question Number and Source only when verified as an actual UPSC previous-year question. Otherwise mark Type: Original.
 
 Keyword: 
 Paper: GS 2
@@ -1045,6 +1097,10 @@ Subject:
 Topic: 
 Points:
 - 
+Type: Original
+Year: 
+Question Number: 
+Source: 
 Question: 
 A) 
 B) 
@@ -1078,7 +1134,7 @@ $('#shell').addEventListener('click',e=>{
   case 'paper-learn':learnF=newF();learnF.paper=b.dataset.v;search='';searching=false;session=null;tab='learn';scrollPos.learn=0;render();break;
   case 'save':toggleSave(id);break;
   case 'share':shareItem(id);break;
-  case 'quiz':if(feedAns[id]==null)delete QV[id];openSheet(quizSheetHTML(id));$('#sheet').dataset.qid=id;break;
+  case 'quiz':delete feedAns[id];delete QV[id];openSheet(quizSheetHTML(id));$('#sheet').dataset.qid=id;break;
   case 'quiz-answer':{const q=$('#sheet').dataset.qid;if(feedAns[q]!=null)break;const i=Number(b.dataset.i),x=qv(q);feedAns[q]=i;const ok=i===LET.indexOf(x.correct);db.seen.add(q);grade(q,ok);markAnswered(q);persist();buzz(ok?12:[24,40,24]);$('#sbody').innerHTML=quizSheetHTML(q);const ex=$('#sbody #exp');if(ex)ex.scrollIntoView({block:'nearest',behavior:smooth()});break}
   case 'quiz-next':{const q=$('#sheet').dataset.qid;closeSheet();const c=document.getElementById('c-'+q),n=c&&c.nextElementSibling;if(n)setTimeout(()=>n.scrollIntoView({block:'start',behavior:smooth()}),250);break}
   case 'close-sheet':closeSheet();break;
