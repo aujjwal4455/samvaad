@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#F6F5F1">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Samvaad">
+<meta name="apple-mobile-web-app-title" content="Nitya">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Samvaad</title>
+<title>Nitya</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%231C1C1E'/%3E%3Ccircle cx='32' cy='32' r='12' fill='%23E8760C'/%3E%3C/svg%3E">
 <script>
 try{var t=JSON.parse(localStorage.getItem('samvaad.v3')||'{}').theme;var d=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.dataset.theme=d?'dark':'light'}catch(e){document.documentElement.dataset.theme='light'}
@@ -339,6 +339,7 @@ button.row:active{background:var(--fill)}
 .onfeed #toast{bottom:calc(var(--tabh) + 86px)}
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.tmr i{animation:drain var(--sd,30s) linear forwards!important}}
+.pts.hide{display:none}.recall{margin:8px 0 4px}
 </style>
 </head>
 <body>
@@ -414,8 +415,9 @@ function normalize(o){
  if(!Array.isArray(opts))opts=[];
  let pts=o.points||o.keyPoints||o.key_points||[];
  if(!Array.isArray(pts))pts=typeof pts==='string'?pts.split(/\n|\r/):[];
- return {id:S(o.id),keyword:S(o.keyword||o.name),paper:canonicalPaper(o.paper),subject:S(o.subject),topic:S(o.topic),points:pts.map(S).filter(Boolean),question:S(o.question),options:opts.map(S),correct:S(o.correct??o.answer??o.correctAnswer),explanation:S(o.explanation),addedOn:Number(o.addedOn)||0,updatedOn:Number(o.updatedOn)||0};
+ return {id:S(o.id),keyword:S(o.keyword||o.name),paper:canonicalPaper(o.paper),subject:S(o.subject),topic:S(o.topic),points:pts.map(S).filter(Boolean),question:S(o.question),options:opts.map(S),correct:S(o.correct??o.answer??o.correctAnswer),explanation:S(o.explanation),variants:cleanVars(o.variants),evergreen:!!o.evergreen,addedOn:Number(o.addedOn)||0,updatedOn:Number(o.updatedOn)||0};
 }
+function cleanVars(v){return (Array.isArray(v)?v:[]).map(q=>({question:S(q&&q.question),options:Array.isArray(q&&q.options)?q.options.map(S):[],correct:S(q&&(q.correct??q.answer)),explanation:S(q&&q.explanation)})).filter(q=>q.question&&q.options.length===4&&q.options.every(Boolean)&&correctIndex(q)>=0)}
 function correctIndex(it){
  if(!Array.isArray(it.options)||it.options.length!==4)return -1;
  if(/^[A-D]$/i.test(it.correct))return LET.indexOf(it.correct.toUpperCase());
@@ -429,9 +431,11 @@ function sampleData(){const now=Date.now();return [
 ].map((x,i)=>({...x,id:'k-'+slug(x.keyword),addedOn:now-(4-i)*86400000,updatedOn:0}))}
 
 function legacyDaily(d){const out={};if(d&&typeof d==='object')for(const k of Object.keys(d)){const v=d[k];if(v&&Array.isArray(v.ids))out[k]={ids:v.ids.map(String)};else if(v&&Number(v.count)>0)out[k]={ids:Array.from({length:Number(v.count)},(_,i)=>'legacy-'+i)}}return out}
-function cleanSrs(o){const out={};if(o&&typeof o==='object')for(const k of Object.keys(o)){const s=o[k];if(!s||typeof s!=='object')continue;out[k]={b:Math.max(0,Math.min(5,Number(s.b)||0)),due:/^\d{4}-\d{2}-\d{2}$/.test(S(s.due))?S(s.due):todayKey(),r:Math.max(0,Number(s.r)||0),w:Math.max(0,Number(s.w)||0),l:Number(s.l)||0}}return out}
+function cleanSrs(o){const out={};if(o&&typeof o==='object')for(const k of Object.keys(o)){const s=o[k];if(!s||typeof s!=='object')continue;out[k]={b:Math.max(0,Math.min(5,Number(s.b)||0)),due:/^\d{4}-\d{2}-\d{2}$/.test(S(s.due))?S(s.due):todayKey(),r:Math.max(0,Number(s.r)||0),w:Math.max(0,Number(s.w)||0),l:Number(s.l)||0,k:s.k===0||s.k===1?s.k:undefined,p:S(s.p)}}return out}
 function finishItem(it,i){const n=normalize(it);return {...n,id:S(it.id)||('k-'+slug(n.keyword)),addedOn:Number(it.addedOn)||Date.now()-i*1000}}
 
+const hadLS=!!readJSON(KEY,null);let mirrorOK=hadLS,snap='';
+const IDB={open(){return new Promise((r,j)=>{const q=indexedDB.open('nitya',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)})},async set(v){try{const d=await this.open();d.transaction('kv','readwrite').objectStore('kv').put(v,'db')}catch(_){}},async get(){try{const d=await this.open();return await new Promise(r=>{const q=d.transaction('kv').objectStore('kv').get('db');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)})}catch(_){return null}}};
 const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},daily:{},theme:null,goal:3,size:10,resume:'',lastBackup:0,flags:{}};
 (function load(){
  let st=readJSON(KEY,null);
@@ -458,11 +462,14 @@ const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},daily:{}
 let toastT,toastFn=null;
 function toast(s,act){const el=$('#toast');el.innerHTML=`<span>${esc(s)}</span>${act?`<button data-act="toast-act">${esc(act.label)}</button>`:''}`;toastFn=act?act.fn:null;el.classList.toggle('act',!!act);el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on','act'),act?6500:2600)}
 function persist(){
- const ok=lsSet(KEY,JSON.stringify({items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,daily:db.daily,theme:db.theme,goal:db.goal,size:db.size,resume:db.resume,lastBackup:db.lastBackup,flags:db.flags}));
+ const ok=lsSet(KEY,snap=JSON.stringify({items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,daily:db.daily,theme:db.theme,goal:db.goal,size:db.size,resume:db.resume,lastBackup:db.lastBackup,flags:db.flags}));
  if(!ok)toast('This viewer is not saving data. Export a backup before closing.');
+ if(mirrorOK)IDB.set(snap);
 }
 let psT;const persistSoon=()=>{clearTimeout(psT);psT=setTimeout(persist,700)};
 persist();
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}
+if(!hadLS)IDB.get().then(v=>{if(v){try{localStorage.setItem(KEY,v);location.reload();return}catch(_){}}mirrorOK=true;IDB.set(snap)});
 
 /* ---------- helpers ---------- */
 const byId=id=>db.items.find(x=>x.id===id);
@@ -482,21 +489,24 @@ function streak(){let s=0;for(let i=0;i<400;i++){const d=new Date();d.setDate(d.
 /* spaced repetition: boxes 0-5, review gaps of 0,1,3,7,14,30 days */
 const isDue=id=>{const s=db.srs[id];return !!s&&s.due<=todayKey()};
 const stateOf=id=>{const s=db.srs[id];return !s?'new':s.b>=4?'mastered':'learning'};
-function grade(id,ok){
- const s=db.srs[id]||(db.srs[id]={b:0,due:todayKey(),r:0,w:0,l:0});
- if(ok){s.r++;s.b=Math.min(5,s.b+1);s.due=addDays(INT[s.b])}else{s.w++;s.b=0;s.due=todayKey()}
- s.l=Date.now();
+function grade(id,ok,soft,slow){
+ const t=todayKey(),s=db.srs[id]||(db.srs[id]={b:0,due:t,r:0,w:0,l:0});
+ if(ok){s.r++;if(!slow&&s.p!==t){s.b=Math.min(5,s.b+1);s.p=t}s.due=addDays(Math.max(1,INT[s.b]));s.k=1}
+ else{s.w++;s.k=0;s.p='';s.b=soft?Math.max(0,s.b-1):0;s.due=t}
+ s.l=Date.now();const m=metaOf(id);m.seen=s.l;m.skip=0;
 }
 const dueItems=()=>db.items.filter(x=>isDue(x.id)).sort((a,b)=>db.srs[a.id].due.localeCompare(db.srs[b.id].due));
 const weakItems=()=>db.items.filter(x=>{const s=db.srs[x.id];return s&&s.w>0&&s.b<=2});
 const freshItems=()=>db.items.filter(x=>!db.srs[x.id]);
 const savedItems=()=>db.items.filter(x=>db.saved.has(x.id));
 const cut=a=>db.size?a.slice(0,db.size):a;
-function pickSmart(n){
- const done=new Set(todayIds()),seen=new Set(),out=[];
- const take=arr=>{for(const x of arr){if(out.length>=n)return;if(!seen.has(x.id)){seen.add(x.id);out.push(x)}}};
- const fresh=a=>a.filter(x=>!done.has(x.id));
- take(fresh(dueItems()));take(shuffle(fresh(weakItems())));take(shuffle(freshItems()));take(shuffle(fresh(db.items)));take(shuffle(db.items));
+function pickSmart(n,pool){
+ const q=ranked(pool||db.items),out=[],seen=new Set(),t=todayKey();
+ const take=(arr,k)=>{for(const x of arr){if(out.length>=n||k<=0)return;if(!seen.has(x.id)){seen.add(x.id);out.push(x);k--}}};
+ const rev=x=>{const s=db.srs[x.id];return s&&(s.k===0||s.due<=t)};
+ take(q.filter(rev),Math.round(n*.6));take(q.filter(x=>!db.srs[x.id]),Math.round(n*.3));
+ take(q.filter(x=>db.srs[x.id]&&!rev(x)),Math.max(1,Math.round(n*.1)));
+ take(q,n);take(shuffle(pool||db.items),n);
  return out;
 }
 function weakTopics(){
@@ -507,6 +517,33 @@ function weakTopics(){
 function totals(){let r=0,w=0,m=0;for(const x of db.items){const s=db.srs[x.id];if(!s)continue;r+=s.r;w+=s.w;if(s.b>=4)m++}return {answered:r+w,acc:r+w?Math.round(r/(r+w)*100):null,mastered:m}}
 function ago(ts){if(!ts)return 'never';const d=Math.floor((Date.now()-ts)/864e5);return d<1?'today':d===1?'yesterday':d+' days ago'}
 
+/* ---------- central queue: one score per keyword, read by every feature ---------- */
+const metaOf=id=>{const m=db.flags.meta||(db.flags.meta={});return m[id]||(m[id]={})};
+const dn=k=>Math.round(Date.parse(k+'T00:00:00')/864e5);
+const hashN=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return h};
+const lastTouch=x=>{const s=db.srs[x.id],m=(db.flags.meta||{})[x.id]||{};return Math.max(x.addedOn||0,m.seen||0,s?s.l:0)};
+function prio(x){
+ const t=todayKey(),s=db.srs[x.id],m=(db.flags.meta||{})[x.id]||{};
+ if(s&&todayIds().includes(x.id)){if(s.k===1)return -1e9;if(Date.now()-s.l<6e5)return -1e9}
+ let p=0;
+ if(!s)p=dn(t)-dn(dateKey(new Date(x.addedOn||Date.now())))>=1?50:15;
+ else{if(s.k===0)p+=40+Math.min(30,10*Math.max(0,s.w-1));const od=dn(t)-dn(s.due);if(od>0)p+=Math.min(50,5*od);else if(od===0)p+=3}
+ p+=Math.min(30,Math.floor((Date.now()-lastTouch(x))/864e5));
+ if((m.skip||0)>=3)p+=15;
+ if((db.flags.kh||[]).some(h=>h.id===x.id&&h.date<t&&dn(t)-dn(h.date)<=7&&!(db.daily[h.date]?.ids||[]).includes(x.id)))p+=20;
+ if(!x.evergreen&&Date.now()-(x.addedOn||Date.now())>540*864e5)p*=.5;
+ return p+(hashN(x.id+t)%100)/100;
+}
+const ranked=(a=db.items)=>a.map(x=>[x,prio(x)]).filter(e=>e[1]>-1e8).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+function why(x){const s=db.srs[x.id];if(!s)return 'New keyword';if(s.k===0)return s.w>1?`Missed ${s.w} times`:'Missed last time';const od=dn(todayKey())-dn(s.due);if(od>0)return `${od} day${od>1?'s':''} overdue`;const d=Math.floor((Date.now()-lastTouch(x))/864e5);return d>0?`Not seen in ${d} day${d>1?'s':''}`:'Due for revision'}
+let QV={};
+function qv(id){
+ if(QV[id])return QV[id];
+ const x=byId(id),vs=[{question:x.question,options:x.options,correct:x.correct,explanation:x.explanation},...(x.variants||[])],s=db.srs[id],v=vs[((s?s.r+s.w:0))%vs.length];
+ const ix=correctIndex(v),o=shuffle([0,1,2,3]);
+ return QV[id]={...x,question:v.question,options:o.map(i=>v.options[i]),correct:LET[o.indexOf(ix)],explanation:v.explanation||x.explanation};
+}
+function endSess(){if(session){for(const id of session.ids)if(session.answers[id]==null){const m=metaOf(id);m.skip=(m.skip||0)+1}persistSoon()}}
 function opts(f){
  const base=db.items.filter(x=>!f.saved||db.saved.has(x.id));
  const papers=uniq(base.map(x=>x.paper)).sort(paperSort);
@@ -541,10 +578,10 @@ function parseText(block){
  return normalize(o);
 }
 function parseInput(text){
- const t=text.trim();if(!t)return [];
+ const t=text.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'').trim();if(!t)return [];
  if(/^[\[{]/.test(t)){
   try{const j=JSON.parse(t);
-   if(j&&!Array.isArray(j)&&Array.isArray(j.items)&&(j.app==='Samvaad'||j.saved||j.daily))return [{_backup:j}];
+   if(j&&!Array.isArray(j)&&Array.isArray(j.items)&&(j.app==='Nitya'||j.app==='Samvaad'||j.saved||j.daily))return [{_backup:j}];
    return (Array.isArray(j)?j:[j]).map(normalize)}
   catch(e){return [{_err:'Invalid JSON: '+e.message+'. Check commas, quotes and brackets.'}]}
  }
@@ -559,6 +596,7 @@ function validate(it,names){
  if(it.points.length<5||it.points.length>10)r.errors.push(`Needs 5 to 10 key points (found ${it.points.length}).`);
  if(it.keyword){const k=it.keyword.toLowerCase();if(names.has(k))r.errors.push('This keyword appears more than once in the paste.');names.add(k);if(db.items.some(x=>x.keyword.toLowerCase()===k))r.status='update'}
  if(!r.errors.length&&!db.items.some(x=>x.paper===it.paper&&x.subject===it.subject&&x.topic===it.topic))r.warnings.push('New paper, subject or topic. It will appear in your filters once added.');
+ if(!r.errors.length&&!(it.variants&&it.variants.length))r.warnings.push('No extra question variants. Add 2 or 3 so repeats test the idea, not the wording.');
  if(r.errors.length)r.status='bad';
  return r;
 }
@@ -566,7 +604,7 @@ function validate(it,names){
 /* ---------- state ---------- */
 let tab='home',session=null,search='',searching=false,focusId='',paste='',addSeg='add',libQ='',libSel=null,lastDel=null;
 let learnF=newF(),pracF=newF(),feedList=[];
-const scrollPos={},feedAns={};
+const scrollPos={},feedAns={},revealed=new Set();
 let analysis=[],tmT,io,ioIn,dwellT,lastTap={t:0,x:0,y:0};
 const analyze=()=>{const names=new Set();analysis=parseInput(paste).map(it=>({it,r:it._backup?{status:'backup',errors:[],warnings:[]}:validate(it,names)}))};
 
@@ -576,13 +614,27 @@ function tabsHTML(){
  const T=[['home','Home'],['learn','Learn'],['practice','Practice'],['add','Add']];
  return T.map(([k,l])=>`<button data-tab="${k}" ${tab===k&&!session?'aria-current="page"':''} aria-label="${l}${k==='practice'&&due?`, ${due} due`:''}"><span class="ti">${ic(k)}${k==='practice'&&due?`<i class="bdg">${due>9?'9+':due}</i>`:''}</span><span>${l}</span></button>`).join('');
 }
+function related(k){const r=ranked(db.items.filter(x=>x.topic===k.topic&&x.id!==k.id)).slice(0,2);return r.length?`<h2 class="sec sm">Same topic</h2><div class="group">${r.map(x=>`<button class="row" data-act="open-learn" data-id="${esc(x.id)}"><div class="grow"><div class="t">${esc(x.keyword)}</div><div class="s">${esc(why(x))}</div></div>${ic('chr',18)}</button>`).join('')}</div>`:''}
+function recap(){
+ if(new Date().getDay()!==0)return '';
+ const h=(db.flags.kh||[]).filter(e=>e.date<todayKey()&&byId(e.id)).slice(-7);if(h.length<2)return '';
+ return `<h2 class="sec sm">This week’s keywords</h2><div class="group">${h.map(e=>{const ok=(db.daily[e.date]?.ids||[]).includes(e.id),x=byId(e.id);return `<button class="row" data-act="open-learn" data-id="${esc(x.id)}"><div class="grow"><div class="t">${esc(x.keyword)}</div><div class="s">${esc(new Date(e.date+'T00:00:00').toLocaleDateString(undefined,{weekday:'long'}))}</div></div><span class="pill ${ok?'green':'red'}">${ok?'Answered':'Missed'}</span></button>`}).join('')}</div>`;
+}
 function kotd(){
  if(!db.items.length)return null;
- const pool=[...db.items].sort((a,b)=>cmp(a.id,b.id));
- const fresh=pool.filter(x=>!db.srs[x.id]&&!db.read.has(x.id));
- const list=fresh.length?fresh:pool;
- let h=0;for(const c of todayKey())h=(h*31+c.charCodeAt(0))>>>0;
- return list[h%list.length];
+ const t=todayKey(),f=db.flags.kotd;
+ if(f&&f.date===t){const x=byId(f.id);if(x)return x}
+ const last=(db.flags.kh||[]).filter(h=>h.date<t).slice(-2),y=last[last.length-1],yy=last[last.length-2];
+ const yAns=y&&(db.daily[y.date]?.ids||[]).includes(y.id);
+ let best=null,bs=-1e18;
+ for(const x of db.items){let sc=prio(x);if(sc<-1e8)continue;
+  if(y&&y.id===x.id&&(yAns||(yy&&yy.id===x.id)))sc-=30;
+  if(last.some(h=>h.topic===x.topic&&h.id!==x.id))sc-=15;
+  if(sc>bs){bs=sc;best=x}}
+ if(!best)best=[...db.items].sort((a,b)=>lastTouch(a)-lastTouch(b))[0];
+ db.flags.kotd={date:t,id:best.id,why:why(best)};
+ db.flags.kh=[...(db.flags.kh||[]).filter(h=>h.date!==t),{date:t,id:best.id,topic:best.topic}].slice(-14);
+ persistSoon();return best;
 }
 function viewHome(){
  const n=todayCount(),goal=db.goal,pct=Math.min(1,n/goal),C=2*Math.PI*42,sk=streak(),done=n>=goal,rem=Math.max(0,goal-n);
@@ -594,7 +646,7 @@ function viewHome(){
  const mixline=done?'Extra practice still strengthens recall.':[nd?`${nd} to revise`:'',nn?`${nn} new`:'',pk.length-nd-nn>0?`${pk.length-nd-nn} to reinforce`:''].filter(Boolean).join(', ')||'A mix picked for you';
  const papers=uniq(db.items.map(x=>x.paper)).sort(paperSort);
  const cov=papers.map(p=>{const a=db.items.filter(x=>x.paper===p),m=a.filter(x=>stateOf(x.id)==='mastered').length,l=a.filter(x=>stateOf(x.id)==='learning').length;return {p,t:a.length,m,l}});
- const nudge=db.items.length>=5&&(!db.lastBackup||Date.now()-db.lastBackup>14*864e5);
+ const nudge=db.items.length>=5&&(!db.lastBackup||Date.now()-db.lastBackup>10*864e5);
  return `<div class="page">
  <div class="hdr"><div><p class="date">${esc(new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}))}</p><h1 class="large">Today</h1></div>
  <div class="right"><span class="streak ${sk?'on':''}" aria-label="${sk} day streak">${ic('flame',18)}${sk}</span>
@@ -606,26 +658,26 @@ function viewHome(){
   </div>
   <div class="days" role="img" aria-label="Last 7 days">${days.map(d=>`<div class="day ${d.done?'done':''} ${d.today?'today':''}"><i>${d.done?ic('check',16):''}</i>${d.l}</div>`).join('')}</div>
   <button class="btn dark wide" data-act="daily">${done?'Practice more':n?'Continue today’s questions':'Start today’s questions'}</button>
- </section>`:`<section class="goal"><div class="gtitle" style="margin-bottom:4px">Start with a keyword</div><p class="gsub" style="margin-bottom:16px">Paste your first keyword and notes. Samvaad turns it into a card to read and a question to practice.</p><button class="btn dark wide" data-tab="add">Add a keyword</button></section>`}
+ </section>`:`<section class="goal"><div class="gtitle" style="margin-bottom:4px">Start with a keyword</div><p class="gsub" style="margin-bottom:16px">Paste your first keyword and notes. Nitya turns it into a card to read and a question to practice.</p><button class="btn dark wide" data-tab="add">Add a keyword</button></section>`}
+ ${recap()}
  ${!storageOK?`<p class="note">This viewer isn’t saving data between sessions. Use Add, then Backup to keep a copy.</p>`:''}
  ${due?`<div class="group" style="margin-top:14px"><div class="row"><span class="chipic t-due">${ic('refresh',20)}</span><div class="grow"><div class="t">${due} due for revision</div><div class="s">Revise before you forget</div></div><button class="btn dark xs" data-act="mode" data-m="due">Revise</button></div></div>`:''}
- ${res?`<div class="group" style="margin-top:14px"><button class="row" data-act="open-learn" data-id="${esc(res.id)}"><span class="chipic t-learn">${ic('learn',20)}</span><div class="grow"><div class="t">Continue reading</div><div class="s">${esc(res.keyword)}</div></div>${ic('chr',18)}</button></div>`:''}
- ${k?`<h2 class="sec">Keyword of the day</h2><button class="kotd ${paperCls(k.paper)}" data-act="open-learn" data-id="${esc(k.id)}"><span class="tag">${esc(k.paper)}</span><h3>${esc(k.keyword)}</h3><p>${esc(k.points[0]||'')}</p><div class="km"><span>${esc(k.subject)}</span><span class="go">Read${ic('chr',16)}</span></div></button>`:''}
+ ${k?`<h2 class="sec">Keyword of the day</h2><button class="kotd ${paperCls(k.paper)}" data-act="open-learn" data-id="${esc(k.id)}"><span class="tag">${esc(k.paper)}</span><h3>${esc(k.keyword)}</h3><p>${esc(k.points[0]||'')}</p><div class="km"><span>${esc((db.flags.kotd&&db.flags.kotd.why)||why(k))} · ${esc(k.subject)}</span><span class="go">Read${ic('chr',16)}</span></div></button>${related(k)}`:''}
  ${weak.length?`<h2 class="sec">Needs attention</h2><div class="group">${weak.map((w,i)=>`<button class="row" data-act="weak-practice" data-i="${i}"><span class="chipic t-weak">${ic('target',20)}</span><div class="grow"><div class="t">${esc(w.topic)}</div><div class="s">${esc(w.subject)}, ${w.r+w.w} attempts</div></div><span class="pill red">${Math.round(w.r/(w.r+w.w)*100)}%</span></button>`).join('')}</div>`:''}
  ${db.items.length?`<h2 class="sec">Progress</h2><div class="group"><div class="stats"><div><b>${tot.answered}</b><span>Answered</span></div><div><b>${tot.acc==null?'–':tot.acc+'%'}</b><span>Accuracy</span></div><div><b>${tot.mastered}</b><span>Mastered</span></div></div>
  ${cov.map(c=>`<button class="row cov ${paperCls(c.p)}" data-act="paper-learn" data-v="${esc(c.p)}"><div class="grow"><div class="covtop"><span class="t"><i class="pd"></i>${esc(c.p)}</span><span class="s">${c.m} of ${c.t} mastered</span></div><div class="bar"><i class="m" style="width:${c.m/c.t*100}%"></i><i class="l" style="width:${c.l/c.t*100}%"></i></div></div></button>`).join('')}</div>`:''}
- ${nudge?`<div class="group" style="margin-top:22px"><button class="row" data-act="goto-backup"><span class="chipic t-shield">${ic('shield',20)}</span><div class="grow"><div class="t">Back up your library</div><div class="s">Last backup: ${ago(db.lastBackup)}</div></div>${ic('chr',18)}</button></div>`:''}
+ ${nudge?`<div class="group" style="margin-top:22px"><button class="row" data-act="backup-now"><span class="chipic t-shield">${ic('shield',20)}</span><div class="grow"><div class="t">Save a backup now</div><div class="s">Last backup: ${ago(db.lastBackup)}</div></div>${ic('chr',18)}</button></div>`:''}
  </div>`;
 }
 
 /* ---------- views: learn ---------- */
 function cardHTML(x,i,n){
- const sv=db.saved.has(x.id),rd=db.read.has(x.id);
+ const sv=db.saved.has(x.id),rd=db.read.has(x.id),rc=!revealed.has(x.id)&&(isDue(x.id)||(db.srs[x.id]&&db.srs[x.id].k===0)),stt=isDue(x.id)?['Due','orange']:({new:['New',''],learning:['Learning','orange'],mastered:['Mastered','green']})[stateOf(x.id)];
  return `<section class="fcard ${paperCls(x.paper)}" id="c-${esc(x.id)}" data-id="${esc(x.id)}" data-i="${i}" aria-label="${esc(x.keyword)}">
-  <div class="ftop"><div class="l"><span class="tag">${esc(x.paper)}</span><span class="rd" ${rd?'':'hidden'}>${ic('check',14)}Read</span></div><span class="pos">${i+1} of ${n}</span></div>
+  <div class="ftop"><div class="l"><span class="tag">${esc(x.paper)}</span><span class="pill ${stt[1]}">${stt[0]}</span><span class="rd" ${rd?'':'hidden'}>${ic('check',14)}Read</span></div><span class="pos">${i+1} of ${n}</span></div>
   <h2 class="ftitle">${esc(x.keyword)}</h2>
   <div class="fcrumb"><button data-act="crumb" data-k="subject" data-v="${esc(x.subject)}">${esc(x.subject)}</button><button data-act="crumb" data-k="topic" data-v="${esc(x.topic)}">${esc(x.topic)}</button></div>
-  <ul class="pts">${x.points.map((p,j)=>`<li style="--i:${Math.min(j,8)}">${esc(p)}</li>`).join('')}</ul>
+  <ul class="pts ${rc?'hide':''}">${x.points.map((p,j)=>`<li style="--i:${Math.min(j,8)}">${esc(p)}</li>`).join('')}</ul>${rc?`<button class="btn soft recall" data-act="reveal" data-id="${esc(x.id)}">Recall it first, then reveal</button>`:''}
   <div class="factions" style="--i:${Math.min(x.points.length,8)}">
    <button class="btn soft ${sv?'on':''}" data-act="save" data-id="${esc(x.id)}" data-save="${esc(x.id)}" aria-pressed="${sv}">${ic('bookmark')}<span>${sv?'Saved':'Save'}</span></button>
    <button class="btn dark" data-act="quiz" data-id="${esc(x.id)}">Test yourself</button>
@@ -634,13 +686,13 @@ function cardHTML(x,i,n){
   <button class="nextcue" data-act="next-card" aria-label="Next keyword">${ic('chd')}</button>
  </section>`;
 }
-function feedItems(){return filterItems(learnF,search).sort(recent)}
+function feedItems(){const k=kotd(),r=new Map(db.items.map(x=>[x.id,prio(x)]));return filterItems(learnF,search).sort((a,b)=>(b===k)-(a===k)||r.get(b.id)-r.get(a.id))}
 function feedInner(arr){
  if(arr.length)return arr.map((x,i)=>cardHTML(x,i,arr.length)).join('')+`<section class="fend"><h3>${arr.length===1?'That’s the one':'You’re through '+arr.length}</h3><p>Lock it in with a quick round while it’s fresh.</p><button class="btn dark" data-act="practice-feed">Practice these</button><button class="btn quiet" data-act="top">Back to top</button></section>`;
  if(!db.items.length)return `<div class="empty"><div class="eicon">${ic('learn',28)}</div><h3>Your library is empty</h3><p>Add a keyword and it will show up here as a card.</p><button class="btn dark" data-tab="add">Add a keyword</button></div>`;
  const savedEmpty=learnF.saved&&!db.saved.size&&!search&&learnF.paper==='All'&&learnF.subject==='All'&&learnF.topic==='All'&&!learnF.unread;
  const allRead=learnF.unread&&!search&&learnF.paper==='All'&&learnF.subject==='All'&&learnF.topic==='All'&&!learnF.saved;
- return `<div class="empty"><div class="eicon">${ic(savedEmpty?'bookmark':allRead?'check':'search',28)}</div><h3>${savedEmpty?'Nothing saved yet':allRead?'All caught up':'No matches'}</h3><p>${savedEmpty?'Tap Save on any keyword and it will be kept here.':allRead?'You’ve read every keyword. Time to test yourself.':'Try a different search or loosen a filter.'}</p><button class="btn soft" data-act="clear-feed">${savedEmpty||allRead?'Show everything':'Clear search and filters'}</button></div>`;
+ return `<div class="empty"><div class="eicon">${ic(savedEmpty?'bookmark':allRead?'check':'search',28)}</div><h3>${savedEmpty?'Nothing saved yet':allRead?'All caught up':'No matches'}</h3><p>${savedEmpty?'Tap Save on any keyword and it will be kept here.':allRead?'You’ve read every keyword. Time to test yourself.':'Try a different search or loosen a filter.'}</p>${allRead?'<button class="btn dark" data-act="mode" data-m="mix">Start Smart Mix</button>':''}<button class="btn soft" data-act="clear-feed">${savedEmpty||allRead?'Show everything':'Clear search and filters'}</button></div>`;
 }
 function fbarHTML(){
  if(searching)return `<label class="search">${ic('search',19)}<input id="q" type="search" placeholder="Search keywords and notes" value="${esc(search)}" aria-label="Search keywords" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false"></label><button class="btn quiet sm" data-act="search-close">Cancel</button>`;
@@ -676,9 +728,9 @@ function setupFeed(){
    if(bar)bar.style.width=((Number(c.dataset.i)+1)/n*100)+'%';
    clearTimeout(dwellT);
    dwellT=setTimeout(()=>{
-    if(!db.read.has(id)){db.read.add(id);const r=c.querySelector('.rd');if(r)r.hidden=false}
+    if(!db.read.has(id)&&!c.querySelector('.pts.hide')){db.read.add(id);const r=c.querySelector('.rd');if(r)r.hidden=false}
     db.resume=id;persistSoon();
-   },1100);
+   },Math.max(4000,1500*c.querySelectorAll('.pts li').length));
   }
  },{root:sc,rootMargin:'-45% 0px -45% 0px',threshold:0});
  sc.querySelectorAll('.fcard[data-id]').forEach(c=>{ioIn.observe(c);io.observe(c)});
@@ -746,7 +798,7 @@ function explainHTML(x,chosen,withPoints){
  return `<div class="exp" id="exp"><h4 style="color:${ok?'var(--green)':'var(--coral)'}">${chosen<0?'Time’s up':ok?'Correct':'Not quite'}</h4><p>${esc(x.explanation)}</p>${withPoints?`<div class="kp"><h4>Key points</h4><ul class="pts">${x.points.map(p=>`<li>${esc(p)}</li>`).join('')}</ul></div>`:''}</div>`;
 }
 function quizSheetHTML(id){
- const x=byId(id);if(!x)return '';
+ const x=qv(id);if(!x)return '';
  const a=feedAns[id];
  return `<div class="shd"><h3>${esc(x.keyword)}</h3><button class="ibtn" data-act="close-sheet" aria-label="Close" style="margin-right:-10px">${ic('x')}</button></div>
  <p class="sq">${esc(x.question)}</p>${optsHTML(x,a,'quiz-answer')}${a!=null?explainHTML(x,a,false)+`<button class="btn dark wide" style="margin-top:14px" data-act="quiz-next">Continue</button>`:''}`;
@@ -754,7 +806,7 @@ function quizSheetHTML(id){
 function viewSession(){
  const s=session,n=s.ids.length;
  if(s.i>=n)return viewSummary();
- const id=s.ids[s.i],x=byId(id),a=s.answers[id],done=a!=null,last=s.i===n-1,sv=db.saved.has(id);
+ const id=s.ids[s.i],x=qv(id),a=s.answers[id],done=a!=null,last=s.i===n-1,sv=db.saved.has(id);
  return `<div class="sess"><div class="sbody">
   <div class="shead"><button class="ibtn" data-act="close-session" aria-label="End practice">${ic('x')}</button><span class="spos">${s.i+1} of ${n}</span><span class="slot">${s.combo>=2?`<span class="combo">${ic('flame',16)}${s.combo}</span>`:''}</span></div>
   ${s.timed?`<div class="tmr ${done?'stop':''}" style="--sd:${SPRINT_MS/1000}s" role="timer" aria-label="Time left"><i></i></div>`:`<div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${s.i+(done?1:0)}"><i style="width:${(s.i+(done?1:0))/n*100}%"></i></div>`}
@@ -782,7 +834,7 @@ function previewHTML(){
  if(!paste.trim())return '';
  const good=analysis.filter(a=>a.r.status!=='bad'&&!a.it._backup).length;
  const bk=analysis.find(a=>a.it._backup);
- if(bk){const n=bk.it._backup.items.length;return `<div class="pv"><div class="top"><div class="t">Samvaad backup</div><span class="pill orange">Backup</span></div><p class="m">${n} keyword${n===1?'':'s'}, plus your saved items and progress. Restoring merges with what’s already here.</p></div><button class="btn dark wide" data-act="restore-paste">Restore backup</button>`}
+ if(bk){const n=bk.it._backup.items.length;return `<div class="pv"><div class="top"><div class="t">Nitya backup</div><span class="pill orange">Backup</span></div><p class="m">${n} keyword${n===1?'':'s'}, plus your saved items and progress. Restoring merges with what’s already here.</p></div><button class="btn dark wide" data-act="restore-paste">Restore backup</button>`}
  return `<h2 class="sec sm">Preview</h2>`+analysis.map(({it,r})=>{
   const cls={new:'green',update:'orange',bad:'red'}[r.status],lab={new:'New',update:'Updates existing',bad:'Needs fixing'}[r.status];
   return `<div class="pv"><div class="top"><div class="t">${esc(it.keyword||'Untitled')}</div><span class="pill ${cls}">${lab}</span></div>
@@ -829,7 +881,7 @@ function viewAdd(){
  else if(addSeg==='library')body=`<label class="search">${ic('search',19)}<input id="lq" type="search" placeholder="Search your library" value="${esc(libQ)}" aria-label="Search library" autocomplete="off" autocorrect="off" spellcheck="false"></label><div id="lib">${libraryHTML()}</div>`;
  else body=`<div class="group"><button class="row" data-act="export"><span class="chipic">${ic('up',20)}</span><div class="grow"><div class="t">Save backup file</div><div class="s">Send it to Files, Drive or AirDrop</div></div></button>
  <button class="row" data-act="copy-backup"><span class="chipic">${ic('copy',20)}</span><div class="grow"><div class="t">Copy backup</div><div class="s">Paste it into Notes as a second copy</div></div></button>
- <button class="row" data-act="import"><span class="chipic">${ic('down',20)}</span><div class="grow"><div class="t">Restore from file</div><div class="s">Works with older Samvaad backups too</div></div></button></div>
+ <button class="row" data-act="import"><span class="chipic">${ic('down',20)}</span><div class="grow"><div class="t">Restore from file</div><div class="s">Works with older Nitya backups too</div></div></button></div>
  <p class="note">Last backup: ${ago(db.lastBackup)}. Everything stays on this device. Nothing is uploaded anywhere.</p>
  <h2 class="sec sm">Progress</h2><div class="group"><button class="row" data-act="reset-progress"><span class="chipic t-weak">${ic('refresh',20)}</span><div class="grow"><div class="t">Reset progress</div><div class="s">Clears streaks, history and review schedule. Keeps your keywords.</div></div></button></div>`;
  return `<div class="page"><div class="hdr"><h1 class="large">${titles[addSeg]}</h1></div>${seg}${body}</div>`;
@@ -853,7 +905,7 @@ function render(opt={}){
  if(tab==='home'&&!session){const r=$('#ringfg');if(r)requestAnimationFrame(()=>requestAnimationFrame(()=>r.setAttribute('stroke-dashoffset',r.dataset.target)))}
  if(session){
   if(session.i>=session.ids.length){const el=$('#sc');if(el)tween(el,0,session.correct)}
-  else if(session.timed){const id=session.ids[session.i];if(session.answers[id]==null)tmT=setTimeout(()=>{if(session&&session.ids[session.i]===id&&session.answers[id]==null)answer(-1)},SPRINT_MS)}
+  else if(session.timed){const id=session.ids[session.i];if(session.answers[id]==null){session.t0=Date.now();tmT=setTimeout(()=>{if(session&&session.ids[session.i]===id&&session.answers[id]==null)answer(-1)},SPRINT_MS)}}
  }
 }
 function go(t){
@@ -871,6 +923,7 @@ function closeSheet(){const s=$('#sheet');s.classList.remove('open');s.setAttrib
 /* ---------- actions ---------- */
 function startSession(list,o={}){
  if(!list.length){toast('No questions match. Adjust your filters or add content.');return}
+ QV={};list.forEach(x=>{metaOf(x.id).seen=Date.now()});
  session={ids:shuffle(list).map(x=>x.id),i:0,answers:{},correct:0,missed:[],combo:0,best:0,mode:o.mode||'custom',timed:!!o.timed,daily:!!o.daily};
  closeSheet();render();
 }
@@ -879,12 +932,12 @@ function runMode(m){
  switch(m){
   case 'mix':l=pickSmart(db.size||db.items.length);break;
   case 'due':l=cut(dueItems());break;
-  case 'weak':l=cut(shuffle(weakItems()));break;
-  case 'fresh':l=cut(shuffle(freshItems()));break;
-  case 'saved':l=cut(shuffle(savedItems()));break;
-  case 'sprint':l=shuffle(db.items).slice(0,SPRINT_N);break;
-  case 'custom':l=cut(shuffle(filterItems(pracF)));break;
-  default:l=cut(shuffle(db.items));
+  case 'weak':l=cut(ranked(weakItems()));break;
+  case 'fresh':l=cut(ranked(freshItems()));break;
+  case 'saved':l=cut(ranked(savedItems()));break;
+  case 'sprint':{const a=db.items.filter(x=>db.srs[x.id]),r=ranked(a),p=(r.length?r:a).sort((x,y)=>db.srs[x.id].b-db.srs[y.id].b).slice(0,SPRINT_N);l=p.length>=SPRINT_N?p:[...p,...ranked(freshItems()).slice(0,SPRINT_N-p.length)];break}
+  case 'custom':l=cut(ranked(filterItems(pracF)));if(!l.length)l=cut(shuffle(filterItems(pracF)));break;
+  default:l=cut(ranked());
  }
  startSession(l,{mode:m,timed:m==='sprint'});
 }
@@ -892,9 +945,9 @@ function answer(i){
  const s=session;if(!s)return;
  const id=s.ids[s.i];if(s.answers[id]!=null)return;
  clearTimeout(tmT);
- s.answers[id]=i;const x=byId(id),ok=i===LET.indexOf(x.correct);
+ s.answers[id]=i;const x=qv(id),ok=i===LET.indexOf(x.correct);
  if(ok){s.correct++;s.combo++;s.best=Math.max(s.best,s.combo)}else{s.missed.push(id);s.combo=0}
- db.seen.add(id);grade(id,ok);markAnswered(id);persist();buzz(ok?12:[24,40,24]);
+ db.seen.add(id);grade(id,ok,i<0,s.timed&&Date.now()-(s.t0||0)>SPRINT_MS*2/3);markAnswered(id);persist();buzz(ok?12:[24,40,24]);
  render({keep:true});
  const e=$('#exp');if(e)e.scrollIntoView({block:'nearest',behavior:smooth()});
 }
@@ -941,14 +994,14 @@ function addParsed(){
   const r=validate(it,names);if(r.status==='bad')continue;
   const ix=correctIndex(it);if(ix<0)continue;
   const ex=db.items.find(x=>x.keyword.toLowerCase()===it.keyword.toLowerCase());
-  const rec={id:ex?ex.id:('k-'+slug(it.keyword)),keyword:it.keyword,paper:it.paper,subject:it.subject,topic:it.topic,points:it.points,question:it.question,options:it.options,correct:LET[ix],explanation:it.explanation,addedOn:ex?ex.addedOn:now,updatedOn:ex?now:0};
+  const rec={id:ex?ex.id:('k-'+slug(it.keyword)),keyword:it.keyword,paper:it.paper,subject:it.subject,topic:it.topic,points:it.points,question:it.question,options:it.options,correct:LET[ix],explanation:it.explanation,variants:it.variants||[],evergreen:!!it.evergreen,addedOn:ex?ex.addedOn:now,updatedOn:ex?now:0};
   if(ex){Object.assign(ex,rec);upd++}else{if(db.items.some(x=>x.id===rec.id))rec.id+='-'+now.toString(36);db.items.push(rec);add++}
  }
  if(!add&&!upd){toast('Fix the highlighted items first.');return}
  paste='';persist();render({keep:true});
  toast(`${add?add+' added':''}${add&&upd?', ':''}${upd?upd+' updated':''}`);
 }
-function backupObj(){return {app:'Samvaad',formatVersion:4,exportedAt:new Date().toISOString(),items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,daily:db.daily,goal:db.goal}}
+function backupObj(){return {app:'Nitya',formatVersion:4,exportedAt:new Date().toISOString(),items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,daily:db.daily,goal:db.goal,flags:{meta:db.flags.meta||{},kh:db.flags.kh||[]}}}
 function restoreBackup(b){
  let add=0,upd=0;const now=Date.now(),map={};
  for(const raw of Array.isArray(b.items)?b.items:[]){
@@ -966,6 +1019,7 @@ function restoreBackup(b){
  for(const k of db.seen)if(!db.srs[k])db.srs[k]={b:1,due:addDays(1),r:0,w:0,l:0};
  const d=legacyDaily(b.daily);
  for(const k of Object.keys(d)){const cur=db.daily[k]?.ids||[];db.daily[k]={ids:uniq(cur.concat(d[k].ids))}}
+ if(b.flags&&typeof b.flags==='object'){const fm=db.flags.meta||(db.flags.meta={}),bm=b.flags.meta||{};for(const k of Object.keys(bm))if(!fm[k]&&ids.has(k))fm[k]=bm[k];if(!(db.flags.kh||[]).length&&Array.isArray(b.flags.kh))db.flags.kh=b.flags.kh.slice(-14)}
  persist();return {add,upd};
 }
 async function copyText(t){
@@ -974,10 +1028,10 @@ async function copyText(t){
 }
 const stamp=()=>{db.lastBackup=Date.now();persist()};
 async function exportFile(){
- const json=JSON.stringify(backupObj(),null,2),name=`samvaad-backup-${todayKey()}.json`;
+ const json=JSON.stringify(backupObj(),null,2),name=`nitya-backup-${todayKey()}.json`;
  try{
   const f=new File([json],name,{type:'application/json'});
-  if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Samvaad backup'});stamp();toast('Backup shared');if(tab==='add')render({keep:true});return}
+  if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Nitya backup'});stamp();toast('Backup shared');if(tab==='add')render({keep:true});return}
  }catch(e){if(e&&e.name==='AbortError')return}
  try{const u=URL.createObjectURL(new Blob([json],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);stamp();toast('Backup file saved');if(tab==='add')render({keep:true})}
  catch(_){toast('Saving files isn’t available here. Use Copy backup.')}
@@ -1023,8 +1077,8 @@ $('#shell').addEventListener('click',e=>{
   case 'paper-learn':learnF=newF();learnF.paper=b.dataset.v;search='';searching=false;session=null;tab='learn';scrollPos.learn=0;render();break;
   case 'save':toggleSave(id);break;
   case 'share':shareItem(id);break;
-  case 'quiz':openSheet(quizSheetHTML(id));$('#sheet').dataset.qid=id;break;
-  case 'quiz-answer':{const q=$('#sheet').dataset.qid;if(feedAns[q]!=null)break;const i=Number(b.dataset.i),x=byId(q);feedAns[q]=i;const ok=i===LET.indexOf(x.correct);db.seen.add(q);grade(q,ok);markAnswered(q);persist();buzz(ok?12:[24,40,24]);$('#sbody').innerHTML=quizSheetHTML(q);const ex=$('#sbody #exp');if(ex)ex.scrollIntoView({block:'nearest',behavior:smooth()});break}
+  case 'quiz':if(feedAns[id]==null)delete QV[id];openSheet(quizSheetHTML(id));$('#sheet').dataset.qid=id;break;
+  case 'quiz-answer':{const q=$('#sheet').dataset.qid;if(feedAns[q]!=null)break;const i=Number(b.dataset.i),x=qv(q);feedAns[q]=i;const ok=i===LET.indexOf(x.correct);db.seen.add(q);grade(q,ok);markAnswered(q);persist();buzz(ok?12:[24,40,24]);$('#sbody').innerHTML=quizSheetHTML(q);const ex=$('#sbody #exp');if(ex)ex.scrollIntoView({block:'nearest',behavior:smooth()});break}
   case 'quiz-next':{const q=$('#sheet').dataset.qid;closeSheet();const c=document.getElementById('c-'+q),n=c&&c.nextElementSibling;if(n)setTimeout(()=>n.scrollIntoView({block:'start',behavior:smooth()}),250);break}
   case 'close-sheet':closeSheet();break;
   case 'toast-act':{const f=toastFn;toastFn=null;$('#toast').classList.remove('on','act');if(f)f();break}
@@ -1038,7 +1092,7 @@ $('#shell').addEventListener('click',e=>{
   case 'crumb':{const k=b.dataset.k;learnF=newF();learnF[k]=b.dataset.v;search='';searching=false;renderFeedList();toast(`Showing ${b.dataset.v}`);break}
   case 'search-open':searching=true;$('#frow').innerHTML=fbarHTML();{const q=$('#q');if(q)q.focus()}break;
   case 'search-close':searching=false;search='';renderFeedList();break;
-  case 'practice-feed':startSession(cut(feedList),{mode:'custom'});break;
+  case 'practice-feed':startSession([...feedList.filter(x=>db.read.has(x.id)),...feedList.filter(x=>!db.read.has(x.id))].slice(0,10),{mode:'custom'});break;
   case 'saved-toggle':{const w=b.dataset.which,f=w==='learn'?learnF:pracF;f.saved=!f.saved;if(w==='learn'){$('#sbody').innerHTML=filterSheetHTML();renderFeedList()}else render({keep:true});break}
   case 'unread-toggle':learnF.unread=!learnF.unread;$('#sbody').innerHTML=filterSheetHTML();renderFeedList();break;
   case 'mode':runMode(b.dataset.m);break;
@@ -1050,8 +1104,10 @@ $('#shell').addEventListener('click',e=>{
   case 'next':if(session&&session.answers[session.ids[session.i]]!=null){session.i++;render()}break;
   case 'again':{const ids=session.missed.slice();startSession(ids.map(byId).filter(Boolean),{mode:'retry'});break}
   case 'another':{const m=session.mode;if(m==='retry'||!m)startSession(cut(shuffle(db.items)),{mode:'custom'});else runMode(m);break}
-  case 'close-session':session=null;render();break;
+  case 'close-session':endSess();session=null;render();break;
   case 'seg':addSeg=b.dataset.v;libSel=null;render();break;
+  case 'reveal':{revealed.add(id);const c=document.getElementById('c-'+id);if(c){const u=c.querySelector('.pts');if(u)u.classList.remove('hide')}b.remove();break}
+  case 'backup-now':exportFile();break;
   case 'goto-backup':addSeg='backup';go('add');break;
   case 'copy-format':copyText(FORMAT).then(ok=>toast(ok?'Format copied. Paste it into your AI chat.':'Couldn’t copy here.'));break;
   case 'paste-clip':navigator.clipboard&&navigator.clipboard.readText?navigator.clipboard.readText().then(t=>{paste=t;render({keep:true})}).catch(()=>toast('Couldn’t read the clipboard. Long-press the box to paste.')):toast('Long-press the box to paste.');break;
