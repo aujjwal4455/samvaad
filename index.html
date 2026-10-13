@@ -344,6 +344,21 @@ button.row:active{background:var(--fill)}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.tmr i{animation:drain var(--sd,30s) linear forwards!important}}
 .pts.hide{display:none}.recall{margin:8px 0 4px}
 .sq{white-space:pre-line}
+
+/* multiple questions per keyword */
+.sdot.missed{background:var(--coral);opacity:1}
+.fcrumb .qc{margin-left:auto;font-size:13px;color:var(--ink3);white-space:nowrap}
+.qrow{align-items:flex-start;padding-top:12px;padding-bottom:12px}
+.qrow .sdot{margin-top:7px}
+.qrow .qt{font-size:15px;line-height:1.35;font-weight:500;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
+.qdots{display:flex;gap:6px;margin:2px 0 14px}
+.qdots i{flex:1;height:4px;border-radius:2px;background:var(--fill)}
+.qdots i.cur{background:var(--ink3)}
+.qdots i.ok{background:var(--green)}
+.qdots i.no{background:var(--coral)}
+.qscore{font-size:20px;color:var(--ink2);margin:8px 0 2px}
+.qscore b{font-size:44px;color:var(--ink);letter-spacing:-.03em;margin-right:4px}
+.pv .pq+.pq{margin-top:12px;padding-top:12px;border-top:.5px solid var(--line)}
 </style>
 </head>
 <body>
@@ -443,9 +458,10 @@ function normalize(o){
  if(primary.question&&primary.options.length===4&&primary.options.every(Boolean)&&correctIndex(primary)>=0&&!qs.some(q=>sameQuestion(q,primary)))qs.unshift(primary);
  const variants=(Array.isArray(o.variants)?o.variants:[]).map(q=>normalizeQuestion(q,defaults));
  for(const q of variants)if(!qs.some(a=>sameQuestion(a,q)))qs.push(q);
+ const badQ=[...fromArray,...variants].filter(q=>!(q.question&&q.options.length===4&&q.options.every(Boolean)&&correctIndex(q)>=0)).length;
  qs=uniqueQuestions(qs);
  const first=qs[0]||primary;
- return {id:S(o.id),keyword:S(o.keyword||o.name),paper:canonicalPaper(o.paper),subject:S(o.subject),topic:S(o.topic),points:pts.map(S).filter(Boolean),question:first.question||S(o.question),options:first.options||[],correct:first.correct||'',explanation:first.explanation||S(o.explanation),source:first.source||S(o.source),type:first.type||'original',year:first.year||'',questionNumber:first.questionNumber||'',questions:qs,variants:qs.slice(1),evergreen:!!o.evergreen,addedOn:Number(o.addedOn)||0,updatedOn:Number(o.updatedOn)||0};
+ return {id:S(o.id),keyword:S(o.keyword||o.name),paper:canonicalPaper(o.paper),subject:S(o.subject),topic:S(o.topic),points:pts.map(S).filter(Boolean),question:first.question||S(o.question),options:first.options||[],correct:first.correct||'',explanation:first.explanation||S(o.explanation),source:first.source||S(o.source),type:first.type||'original',year:first.year||'',questionNumber:first.questionNumber||'',questions:qs,variants:qs.slice(1),evergreen:!!o.evergreen,addedOn:Number(o.addedOn)||0,updatedOn:Number(o.updatedOn)||0,_dropped:badQ};
 }
 function cleanVars(v){return (Array.isArray(v)?v:[]).map(q=>normalizeQuestion(q)).filter(q=>q.question&&q.options.length===4&&q.options.every(Boolean)&&correctIndex(q)>=0)}
 function correctIndex(it){
@@ -462,11 +478,13 @@ function sampleData(){const now=Date.now();return [
 
 function legacyDaily(d){const out={};if(d&&typeof d==='object')for(const k of Object.keys(d)){const v=d[k];if(v&&Array.isArray(v.ids))out[k]={ids:v.ids.map(String)};else if(v&&Number(v.count)>0)out[k]={ids:Array.from({length:Number(v.count)},(_,i)=>'legacy-'+i)}}return out}
 function cleanSrs(o){const out={};if(o&&typeof o==='object')for(const k of Object.keys(o)){const s=o[k];if(!s||typeof s!=='object')continue;out[k]={b:Math.max(0,Math.min(5,Number(s.b)||0)),due:/^\d{4}-\d{2}-\d{2}$/.test(S(s.due))?S(s.due):todayKey(),r:Math.max(0,Number(s.r)||0),w:Math.max(0,Number(s.w)||0),l:Number(s.l)||0,k:s.k===0||s.k===1?s.k:undefined,p:S(s.p)}}return out}
-function finishItem(it,i){const n=normalize(it);return {...n,id:S(it.id)||('k-'+slug(n.keyword)),addedOn:Number(it.addedOn)||Date.now()-i*1000}}
+function finishItem(it,i){const n=normalize(it);delete n._dropped;return {...n,id:S(it.id)||('k-'+slug(n.keyword)),addedOn:Number(it.addedOn)||Date.now()-i*1000}}
 
 const hadLS=!!readJSON(KEY,null);let mirrorOK=hadLS,snap='';
 const IDB={open(){return new Promise((r,j)=>{const q=indexedDB.open('nitya',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)})},async set(v){try{const d=await this.open();d.transaction('kv','readwrite').objectStore('kv').put(v,'db')}catch(_){}},async get(){try{const d=await this.open();return await new Promise(r=>{const q=d.transaction('kv').objectStore('kv').get('db');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)})}catch(_){return null}}};
-const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},daily:{},theme:null,goal:3,size:10,resume:'',lastBackup:0,flags:{}};
+let UC=null,UM=null,UK=null;
+function dirty(){UC=null;UM=null;UK=null}
+const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},qsrs:{},daily:{},theme:null,goal:3,size:10,resume:'',lastBackup:0,flags:{}};
 (function load(){
  let st=readJSON(KEY,null);
  if(!st||typeof st!=='object'){
@@ -479,6 +497,7 @@ const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},daily:{}
  db.seen=new Set(Array.isArray(st.seen)?st.seen:[]);
  db.read=new Set(Array.isArray(st.read)?st.read:[]);
  db.srs=cleanSrs(st.srs);
+ db.qsrs=cleanSrs(st.qsrs);
  db.daily=legacyDaily(st.daily);
  db.theme=st.theme||document.documentElement.dataset.theme;
  db.goal=GOALS.includes(Number(st.goal))?Number(st.goal):3;
@@ -488,11 +507,13 @@ const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},daily:{}
  db.flags=st.flags&&typeof st.flags==='object'?st.flags:{};
  /* older progress: questions already answered start in the review cycle */
  for(const id of db.seen)if(ids.has(id)&&!db.srs[id])db.srs[id]={b:1,due:addDays(1),r:0,w:0,l:0};
+ /* keywords that only had one question keep their progress at question level */
+ for(const x of db.items){const us=unitsOf(x);if(us.length===1&&db.srs[x.id]&&!db.qsrs[us[0].uid])db.qsrs[us[0].uid]={...db.srs[x.id]}}
 })();
 let toastT,toastFn=null;
 function toast(s,act){const el=$('#toast');el.innerHTML=`<span>${esc(s)}</span>${act?`<button data-act="toast-act">${esc(act.label)}</button>`:''}`;toastFn=act?act.fn:null;el.classList.toggle('act',!!act);el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on','act'),act?6500:2600)}
 function persist(){
- const ok=lsSet(KEY,snap=JSON.stringify({items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,daily:db.daily,theme:db.theme,goal:db.goal,size:db.size,resume:db.resume,lastBackup:db.lastBackup,flags:db.flags}));
+ const ok=lsSet(KEY,snap=JSON.stringify({items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,qsrs:db.qsrs,daily:db.daily,theme:db.theme,goal:db.goal,size:db.size,resume:db.resume,lastBackup:db.lastBackup,flags:db.flags}));
  if(!ok)toast('This viewer is not saving data. Export a backup before closing.');
  if(mirrorOK)IDB.set(snap);
 }
@@ -517,34 +538,81 @@ function markAnswered(id){const k=todayKey();const d=db.daily[k]||(db.daily[k]={
 function streak(){let s=0;for(let i=0;i<400;i++){const d=new Date();d.setDate(d.getDate()-i);const n=(db.daily[dateKey(d)]?.ids||[]).length;if(n>=db.goal)s++;else if(i===0)continue;else break}return s}
 
 /* spaced repetition: boxes 0-5, review gaps of 0,1,3,7,14,30 days */
-const isDue=id=>{const s=db.srs[id];return !!s&&s.due<=todayKey()};
-const stateOf=id=>{const s=db.srs[id];return !s?'new':s.b>=4?'mastered':'learning'};
+const isDue=id=>{const t=todayKey(),us=kUnits(id);if(us.some(u=>db.qsrs[u.uid]))return us.some(u=>{const s=db.qsrs[u.uid];return !!s&&s.due<=t});const s=db.srs[id];return !!s&&s.due<=t};
+const stateOf=id=>{const us=kUnits(id),at=us.filter(u=>db.qsrs[u.uid]);if(at.length)return at.length===us.length&&at.every(u=>db.qsrs[u.uid].b>=4)?'mastered':'learning';const s=db.srs[id];return !s?'new':s.b>=4?'mastered':'learning'};
+function gradeQ(uid,ok,soft,slow){
+ const t=todayKey(),s=db.qsrs[uid]||(db.qsrs[uid]={b:0,due:t,r:0,w:0,l:0});
+ if(ok){s.r++;if(!slow&&s.p!==t){s.b=Math.min(5,s.b+1);s.p=t}s.due=addDays(Math.max(1,INT[s.b]));s.k=1}
+ else{s.w++;s.k=0;s.p='';s.b=soft?Math.max(0,s.b-1):0;s.due=t}
+ s.l=Date.now();
+}
 function grade(id,ok,soft,slow){
  const t=todayKey(),s=db.srs[id]||(db.srs[id]={b:0,due:t,r:0,w:0,l:0});
  if(ok){s.r++;if(!slow&&s.p!==t){s.b=Math.min(5,s.b+1);s.p=t}s.due=addDays(Math.max(1,INT[s.b]));s.k=1}
  else{s.w++;s.k=0;s.p='';s.b=soft?Math.max(0,s.b-1):0;s.due=t}
  s.l=Date.now();const m=metaOf(id);m.seen=s.l;m.skip=0;
 }
-const dueItems=()=>db.items.filter(x=>isDue(x.id)).sort((a,b)=>db.srs[a.id].due.localeCompare(db.srs[b.id].due));
-const weakItems=()=>db.items.filter(x=>{const s=db.srs[x.id];return s&&s.w>0&&s.b<=2});
-const freshItems=()=>db.items.filter(x=>!db.srs[x.id]);
-const savedItems=()=>db.items.filter(x=>db.saved.has(x.id));
+const dueUnits=()=>{const t=todayKey();return allUnits().filter(u=>{const s=db.qsrs[u.uid];return s&&s.due<=t}).sort((a,b)=>db.qsrs[a.uid].due.localeCompare(db.qsrs[b.uid].due))};
+const weakUnits=()=>allUnits().filter(u=>{const s=db.qsrs[u.uid];return s&&s.w>0&&s.b<=2});
+const freshUnits=()=>allUnits().filter(u=>!db.qsrs[u.uid]);
+const savedUnits=()=>allUnits().filter(u=>db.saved.has(u.kid));
 const cut=a=>db.size?a.slice(0,db.size):a;
-function pickSmart(n,pool){
- const q=ranked(pool||db.items),out=[],seen=new Set(),t=todayKey();
- const take=(arr,k)=>{for(const x of arr){if(out.length>=n||k<=0)return;if(!seen.has(x.id)){seen.add(x.id);out.push(x);k--}}};
- const rev=x=>{const s=db.srs[x.id];return s&&(s.k===0||s.due<=t)};
- take(q.filter(rev),Math.round(n*.6));take(q.filter(x=>!db.srs[x.id]),Math.round(n*.3));
- take(q.filter(x=>db.srs[x.id]&&!rev(x)),Math.max(1,Math.round(n*.1)));
- take(q,n);take(shuffle(pool||db.items),n);
+/* ---------- question units: each question is scheduled, picked and graded on its own ---------- */
+function qh(s){let h=5381;for(const c of s)h=((h<<5)+h+c.charCodeAt(0))>>>0;return h.toString(36)}
+function qkey(q){return qh([S(q.question).toLowerCase().replace(/\s+/g,' '),S(q.year),S(q.questionNumber)].join('|'))}
+function kidOf(u){const i=u.lastIndexOf('|');return i<0?u:u.slice(0,i)}
+function unitsOf(x){const seen={};return questionBank(x).map((q,i)=>{let k=qkey(q);seen[k]=(seen[k]||0)+1;if(seen[k]>1)k+='~'+seen[k];return {uid:x.id+'|'+k,kid:x.id,key:k,idx:i,x,q}})}
+function buildUnits(){if(UC)return;UC=[];UM=new Map();UK=new Map();for(const x of db.items){const us=unitsOf(x);UK.set(x.id,us);for(const u of us){UC.push(u);UM.set(u.uid,u)}}}
+const allUnits=()=>{buildUnits();return UC};
+const kUnits=id=>{buildUnits();return UK.get(id)||[]};
+const unitById=uid=>{buildUnits();return UM.get(uid)||null};
+const unitsFor=items=>{const ks=new Set(items.map(x=>x.id));return allUnits().filter(u=>ks.has(u.kid))};
+const kwIn=(ids,kid)=>ids.some(i=>i===kid||i.startsWith(kid+'|'));
+const CAP=3;
+function uPrio(u){
+ const t=todayKey(),s=db.qsrs[u.uid],m=(db.flags.meta||{})[u.kid]||{};
+ if(s&&todayIds().includes(u.uid)){if(s.k===1)return -1e9;if(Date.now()-s.l<6e5)return -1e9}
+ let p=0;
+ if(!s)p=dn(t)-dn(dateKey(new Date(u.x.addedOn||Date.now())))>=1?30:15;
+ else{if(s.k===0)p+=40+Math.min(30,10*Math.max(0,s.w-1));const od=dn(t)-dn(s.due);if(od>0)p+=Math.min(50,5*od);else if(od===0)p+=3;p+=Math.min(30,Math.floor((Date.now()-s.l)/864e5))}
+ if((m.skip||0)>=3)p+=8;
+ if(!u.x.evergreen&&Date.now()-(u.x.addedOn||Date.now())>540*864e5)p*=.5;
+ return p+(hashN(u.uid+t)%100)/100;
+}
+/* greedy pick: best score first, each extra question from the same keyword costs 14 points, so sets mix keywords; cap is soft */
+function chooseUnits(us,n,cap){
+ const list=us.map(u=>({u,s:uPrio(u)})).filter(e=>e.s>-1e8),out=[],cnt={},keys=new Set();
+ while(out.length<n&&list.length){
+  let bi=-1,bs=-1e18;
+  for(let i=0;i<list.length;i++){const e=list[i],c=cnt[e.u.kid]||0;if(cap&&c>=cap)continue;const v=e.s-14*c;if(v>bs){bs=v;bi=i}}
+  if(bi<0){if(cap){cap=0;continue}break}
+  const e=list.splice(bi,1)[0];
+  if(keys.has(e.u.key))continue;keys.add(e.u.key);
+  cnt[e.u.kid]=(cnt[e.u.kid]||0)+1;out.push(e.u);
+ }
  return out;
 }
+const rankU=(us,cap=CAP,n=us.length)=>chooseUnits(us,n,cap);
+const cutU=a=>db.size?a.slice(0,db.size):a;
+function spread(a){a=shuffle(a);for(let i=1;i<a.length;i++){if(a[i].kid===a[i-1].kid){let j=i+1;while(j<a.length&&a[j].kid===a[i-1].kid)j++;if(j<a.length)[a[i],a[j]]=[a[j],a[i]]}}return a}
+function practiceUnits(){const f=pracF,ty=f.qtype==='PYQ'?'pyq':f.qtype==='Original'?'original':'';return unitsFor(filterItems(f)).filter(u=>!ty||u.q.type===ty)}
+function pickSmart(n,pool){
+ const us=unitsFor(pool||db.items),t=todayKey(),got=new Set(),out=[];
+ const rev=u=>{const s=db.qsrs[u.uid];return s&&(s.k===0||s.due<=t)};
+ const step=(f,k)=>{if(k<=0)return;chooseUnits(us.filter(u=>!got.has(u.uid)&&f(u)),k,CAP).forEach(u=>{got.add(u.uid);out.push(u)})};
+ step(rev,Math.round(n*.6));step(u=>!db.qsrs[u.uid],Math.round(n*.3));step(u=>db.qsrs[u.uid]&&!rev(u),Math.max(1,Math.round(n*.1)));
+ step(()=>true,n-out.length);
+ for(const u of shuffle(us.filter(u=>!got.has(u.uid)))){if(out.length>=n)break;if(!out.some(o=>o.key===u.key)){got.add(u.uid);out.push(u)}}
+ return spread(out.slice(0,n));
+}
+function qStat(u){const s=db.qsrs[u.uid];return !s?'new':s.k===0?'missed':s.b>=4?'mastered':'learning'}
+function qcHTML(x){const us=kUnits(x.id);if(!us.length)return '';const py=us.filter(u=>u.q.type==='pyq').length;return `<span class="qc">${us.length} question${us.length===1?'':'s'}${py?`, ${py} PYQ`:''}</span>`}
 function weakTopics(){
  const g={};
- for(const x of db.items){const s=db.srs[x.id];if(!s||s.r+s.w===0)continue;const k=x.subject+'›'+x.topic;const o=g[k]||(g[k]={subject:x.subject,topic:x.topic,items:[],r:0,w:0});o.items.push(x);o.r+=s.r;o.w+=s.w}
+ for(const u of allUnits()){const s=db.qsrs[u.uid];if(!s||s.r+s.w===0)continue;const k=u.x.subject+'›'+u.x.topic;const o=g[k]||(g[k]={subject:u.x.subject,topic:u.x.topic,items:[],r:0,w:0});if(!o.items.includes(u.x))o.items.push(u.x);o.r+=s.r;o.w+=s.w}
  return Object.values(g).filter(o=>o.r+o.w>=3&&o.r/(o.r+o.w)<.7).sort((a,b)=>a.r/(a.r+a.w)-b.r/(b.r+b.w)).slice(0,3);
 }
-function totals(){let r=0,w=0,m=0;for(const x of db.items){const s=db.srs[x.id];if(!s)continue;r+=s.r;w+=s.w;if(s.b>=4)m++}return {answered:r+w,acc:r+w?Math.round(r/(r+w)*100):null,mastered:m}}
+function totals(){let r=0,w=0,m=0;for(const x of db.items){const s=db.srs[x.id];if(s){r+=s.r;w+=s.w}}for(const u of allUnits()){const s=db.qsrs[u.uid];if(s&&s.b>=4)m++}return {answered:r+w,acc:r+w?Math.round(r/(r+w)*100):null,mastered:m}}
 function ago(ts){if(!ts)return 'never';const d=Math.floor((Date.now()-ts)/864e5);return d<1?'today':d===1?'yesterday':d+' days ago'}
 
 /* ---------- central queue: one score per keyword, read by every feature ---------- */
@@ -554,13 +622,13 @@ const hashN=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return h};
 const lastTouch=x=>{const s=db.srs[x.id],m=(db.flags.meta||{})[x.id]||{};return Math.max(x.addedOn||0,m.seen||0,s?s.l:0)};
 function prio(x){
  const t=todayKey(),s=db.srs[x.id],m=(db.flags.meta||{})[x.id]||{};
- if(s&&todayIds().includes(x.id)){if(s.k===1)return -1e9;if(Date.now()-s.l<6e5)return -1e9}
+ if(s&&kwIn(todayIds(),x.id)){if(s.k===1)return -1e9;if(Date.now()-s.l<6e5)return -1e9}
  let p=0;
  if(!s)p=dn(t)-dn(dateKey(new Date(x.addedOn||Date.now())))>=1?50:15;
  else{if(s.k===0)p+=40+Math.min(30,10*Math.max(0,s.w-1));const od=dn(t)-dn(s.due);if(od>0)p+=Math.min(50,5*od);else if(od===0)p+=3}
  p+=Math.min(30,Math.floor((Date.now()-lastTouch(x))/864e5));
  if((m.skip||0)>=3)p+=15;
- if((db.flags.kh||[]).some(h=>h.id===x.id&&h.date<t&&dn(t)-dn(h.date)<=7&&!(db.daily[h.date]?.ids||[]).includes(x.id)))p+=20;
+ if((db.flags.kh||[]).some(h=>h.id===x.id&&h.date<t&&dn(t)-dn(h.date)<=7&&!kwIn(db.daily[h.date]?.ids||[],x.id)))p+=20;
  if(!x.evergreen&&Date.now()-(x.addedOn||Date.now())>540*864e5)p*=.5;
  return p+(hashN(x.id+t)%100)/100;
 }
@@ -579,13 +647,13 @@ function questionBank(x){
  const main=normalizeQuestion(x);
  return uniqueQuestions([main,...cleanVars(x.variants)]);
 }
-function qv(id){
- if(QV[id])return QV[id];
- const x=byId(id),vs=questionBank(x),s=db.srs[id],v=vs[((s?s.r+s.w:0))%Math.max(1,vs.length)]||normalizeQuestion(x);
- const ix=correctIndex(v),o=shuffle([0,1,2,3]);
- return QV[id]={...x,...v,question:v.question,options:o.map(i=>v.options[i]),correct:LET[o.indexOf(ix)],explanation:v.explanation||x.explanation};
+function qv(uid){
+ if(QV[uid])return QV[uid];
+ const u=unitById(uid);if(!u)return null;
+ const v=u.q,ix=correctIndex(v),o=shuffle([0,1,2,3]);
+ return QV[uid]={...u.x,...v,id:u.kid,uid,qkey:u.key,qidx:u.idx,qtotal:kUnits(u.kid).length,options:o.map(i=>v.options[i]),correct:LET[o.indexOf(ix)],explanation:v.explanation||u.x.explanation};
 }
-function endSess(){if(session){for(const id of session.ids)if(session.answers[id]==null){const m=metaOf(id);m.skip=(m.skip||0)+1}persistSoon()}}
+function endSess(){if(session){for(const id of session.ids)if(session.answers[id]==null){const m=metaOf(kidOf(id));m.skip=(m.skip||0)+1}persistSoon()}}
 function opts(f){
  const base=db.items.filter(x=>!f.saved||db.saved.has(x.id));
  const papers=uniq(base.map(x=>x.paper)).sort(paperSort);
@@ -602,8 +670,8 @@ function filterItems(f,q=''){
  const n=q.trim().toLowerCase();
  return db.items.filter(x=>(f.paper==='All'||x.paper===f.paper)&&(f.subject==='All'||x.subject===f.subject)&&(f.topic==='All'||x.topic===f.topic)&&(!f.saved||db.saved.has(x.id))&&(!f.unread||!db.read.has(x.id))&&(!n||[x.keyword,x.paper,x.subject,x.topic,x.question,x.explanation,...x.points,...questionBank(x).flatMap(q=>[q.question,q.explanation,q.source,q.year,q.questionNumber,q.type])].join(' ').toLowerCase().includes(n)));
 }
-const newF=()=>({paper:'All',subject:'All',topic:'All',saved:false,unread:false});
-const isFiltered=f=>f.paper!=='All'||f.subject!=='All'||f.topic!=='All'||f.saved||f.unread;
+const newF=()=>({paper:'All',subject:'All',topic:'All',saved:false,unread:false,qtype:'All'});
+const isFiltered=f=>f.paper!=='All'||f.subject!=='All'||f.topic!=='All'||f.saved||f.unread||(f.qtype||'All')!=='All';
 
 /* ---------- parsing ---------- */
 function parseText(block){
@@ -632,12 +700,16 @@ function parseInput(text){
 function validate(it,names){
  const r={errors:[],warnings:[],status:'new'};
  if(it._err){r.errors.push(it._err);r.status='bad';return r}
- for(const [k,n] of [['keyword','Keyword'],['paper','Paper'],['subject','Subject'],['topic','Topic'],['question','Question'],['explanation','Explanation']])if(!it[k])r.errors.push(n+' is missing.');
+ const k0=S(it.keyword).trim().toLowerCase(),ex=k0?db.items.find(x=>x.keyword.trim().toLowerCase()===k0):null,cont=!!k0&&(!!ex||names.has(k0));
+ /* a repeated keyword only needs its question fields; paper, subject, topic and points are inherited */
+ for(const [k,n] of [['keyword','Keyword'],['paper','Paper'],['subject','Subject'],['topic','Topic'],['question','Question'],['explanation','Explanation']])if(!it[k]&&!(cont&&(k==='paper'||k==='subject'||k==='topic')))r.errors.push(n+' is missing.');
  if(it.options.length!==4||it.options.some(x=>!x))r.errors.push(`Needs exactly 4 non-empty options (found ${it.options.filter(Boolean).length}).`);
  else{const ix=correctIndex(it);if(ix<0)r.errors.push('Correct answer must be A, B, C or D, or exactly match one option.');else it._ix=ix}
- if(it.points.length<5||it.points.length>10)r.errors.push(`Needs 5 to 10 key points (found ${it.points.length}).`);
- if(it.keyword){const k=it.keyword.trim().toLowerCase(),seenInPaste=names.has(k),exists=db.items.some(x=>x.keyword.trim().toLowerCase()===k);names.add(k);if(exists||seenInPaste)r.status='update'}
- if(!r.errors.length&&!db.items.some(x=>x.paper===it.paper&&x.subject===it.subject&&x.topic===it.topic))r.warnings.push('New paper, subject or topic. It will appear in your filters once added.');
+ if(!(cont&&!it.points.length)&&(it.points.length<5||it.points.length>10))r.errors.push(`Needs 5 to 10 key points (found ${it.points.length}).`);
+ if(it.keyword){names.add(k0);if(cont)r.status='update'}
+ if(ex){const have=questionBank(ex),qs=it.questions||[];r.total=qs.length;r.newQ=qs.filter(q=>!have.some(h=>sameQuestion(h,q))).length;if(qs.length&&!r.newQ)r.warnings.push('Every question here is already in this keyword.')}
+ if(it._dropped)r.warnings.push(`${it._dropped} question${it._dropped===1?'':'s'} skipped: each needs 4 options and a correct answer of A to D.`);
+ if(!r.errors.length&&it.paper&&!db.items.some(x=>x.paper===it.paper&&x.subject===it.subject&&x.topic===it.topic))r.warnings.push('New paper, subject or topic. It will appear in your filters once added.');
  if(r.errors.length)r.status='bad';
  return r;
 }
@@ -651,7 +723,7 @@ const analyze=()=>{const names=new Set();analysis=parseInput(paste).map(it=>({it
 
 /* ---------- views: home ---------- */
 function tabsHTML(){
- const due=dueItems().length;
+ const due=dueUnits().length;
  const T=[['home','Home'],['learn','Learn'],['practice','Practice'],['add','Add']];
  return T.map(([k,l])=>`<button data-tab="${k}" ${tab===k&&!session?'aria-current="page"':''} aria-label="${l}${k==='practice'&&due?`, ${due} due`:''}"><span class="ti">${ic(k)}${k==='practice'&&due?`<i class="bdg">${due>9?'9+':due}</i>`:''}</span><span>${l}</span></button>`).join('');
 }
@@ -659,7 +731,7 @@ function related(k){const r=ranked(db.items.filter(x=>x.topic===k.topic&&x.id!==
 function recap(){
  if(new Date().getDay()!==0)return '';
  const h=(db.flags.kh||[]).filter(e=>e.date<todayKey()&&byId(e.id)).slice(-7);if(h.length<2)return '';
- return `<h2 class="sec sm">This week’s keywords</h2><div class="group">${h.map(e=>{const ok=(db.daily[e.date]?.ids||[]).includes(e.id),x=byId(e.id);return `<button class="row" data-act="open-learn" data-id="${esc(x.id)}"><div class="grow"><div class="t">${esc(x.keyword)}</div><div class="s">${esc(new Date(e.date+'T00:00:00').toLocaleDateString(undefined,{weekday:'long'}))}</div></div><span class="pill ${ok?'green':'red'}">${ok?'Answered':'Missed'}</span></button>`}).join('')}</div>`;
+ return `<h2 class="sec sm">This week’s keywords</h2><div class="group">${h.map(e=>{const ok=kwIn(db.daily[e.date]?.ids||[],e.id),x=byId(e.id);return `<button class="row" data-act="open-learn" data-id="${esc(x.id)}"><div class="grow"><div class="t">${esc(x.keyword)}</div><div class="s">${esc(new Date(e.date+'T00:00:00').toLocaleDateString(undefined,{weekday:'long'}))}</div></div><span class="pill ${ok?'green':'red'}">${ok?'Answered':'Missed'}</span></button>`}).join('')}</div>`;
 }
 function kotd(){
  if(!db.items.length)return null;
@@ -681,12 +753,12 @@ function viewHome(){
  const n=todayCount(),goal=db.goal,pct=Math.min(1,n/goal),C=2*Math.PI*42,sk=streak(),done=n>=goal,rem=Math.max(0,goal-n);
  const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push({l:d.toLocaleDateString(undefined,{weekday:'narrow'}),done:(db.daily[dateKey(d)]?.ids||[]).length>=goal,today:i===0})}
  const dark=document.documentElement.dataset.theme==='dark';
- const due=dueItems().length,tot=totals(),k=kotd(),res=db.resume&&byId(db.resume),weak=weakTopics();
+ const due=dueUnits().length,tot=totals(),k=kotd(),res=db.resume&&byId(db.resume),weak=weakTopics();
  const pk=db.items.length?pickSmart(done?5:rem):[];
- const nd=pk.filter(x=>isDue(x.id)).length,nn=pk.filter(x=>!db.srs[x.id]).length;
+ const nd=pk.filter(u=>{const s=db.qsrs[u.uid];return s&&s.due<=todayKey()}).length,nn=pk.filter(u=>!db.qsrs[u.uid]).length;
  const mixline=done?'Extra practice still strengthens recall.':[nd?`${nd} to revise`:'',nn?`${nn} new`:'',pk.length-nd-nn>0?`${pk.length-nd-nn} to reinforce`:''].filter(Boolean).join(', ')||'A mix picked for you';
  const papers=uniq(db.items.map(x=>x.paper)).sort(paperSort);
- const cov=papers.map(p=>{const a=db.items.filter(x=>x.paper===p),m=a.filter(x=>stateOf(x.id)==='mastered').length,l=a.filter(x=>stateOf(x.id)==='learning').length;return {p,t:a.length,m,l}});
+ const cov=papers.map(p=>{const a=allUnits().filter(u=>u.x.paper===p);let m=0,l=0;for(const u of a){const s=db.qsrs[u.uid];if(s){if(s.b>=4)m++;else l++}}return {p,t:a.length,m,l}});
  const nudge=db.items.length>=5&&(!db.lastBackup||Date.now()-db.lastBackup>10*864e5);
  return `<div class="page">
  <div class="hdr"><div><p class="date">${esc(new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}))}</p><h1 class="large">Today</h1></div>
@@ -706,7 +778,7 @@ function viewHome(){
  ${k?`<h2 class="sec">Keyword of the day</h2><button class="kotd ${paperCls(k.paper)}" data-act="open-learn" data-id="${esc(k.id)}"><span class="tag">${esc(k.paper)}</span><h3>${esc(k.keyword)}</h3><p>${esc(k.points[0]||'')}</p><div class="km"><span>${esc((db.flags.kotd&&db.flags.kotd.why)||why(k))} · ${esc(k.subject)}</span><span class="go">Read${ic('chr',16)}</span></div></button>${related(k)}`:''}
  ${weak.length?`<h2 class="sec">Needs attention</h2><div class="group">${weak.map((w,i)=>`<button class="row" data-act="weak-practice" data-i="${i}"><span class="chipic t-weak">${ic('target',20)}</span><div class="grow"><div class="t">${esc(w.topic)}</div><div class="s">${esc(w.subject)}, ${w.r+w.w} attempts</div></div><span class="pill red">${Math.round(w.r/(w.r+w.w)*100)}%</span></button>`).join('')}</div>`:''}
  ${db.items.length?`<h2 class="sec">Progress</h2><div class="group"><div class="stats"><div><b>${tot.answered}</b><span>Answered</span></div><div><b>${tot.acc==null?'–':tot.acc+'%'}</b><span>Accuracy</span></div><div><b>${tot.mastered}</b><span>Mastered</span></div></div>
- ${cov.map(c=>`<button class="row cov ${paperCls(c.p)}" data-act="paper-learn" data-v="${esc(c.p)}"><div class="grow"><div class="covtop"><span class="t"><i class="pd"></i>${esc(c.p)}</span><span class="s">${c.m} of ${c.t} mastered</span></div><div class="bar"><i class="m" style="width:${c.m/c.t*100}%"></i><i class="l" style="width:${c.l/c.t*100}%"></i></div></div></button>`).join('')}</div>`:''}
+ ${cov.map(c=>`<button class="row cov ${paperCls(c.p)}" data-act="paper-learn" data-v="${esc(c.p)}"><div class="grow"><div class="covtop"><span class="t"><i class="pd"></i>${esc(c.p)}</span><span class="s">${c.m} of ${c.t} questions mastered</span></div><div class="bar"><i class="m" style="width:${c.m/c.t*100}%"></i><i class="l" style="width:${c.l/c.t*100}%"></i></div></div></button>`).join('')}</div>`:''}
  ${nudge?`<div class="group" style="margin-top:22px"><button class="row" data-act="backup-now"><span class="chipic t-shield">${ic('shield',20)}</span><div class="grow"><div class="t">Save a backup now</div><div class="s">Last backup: ${ago(db.lastBackup)}</div></div>${ic('chr',18)}</button></div>`:''}
  </div>`;
 }
@@ -717,7 +789,7 @@ function cardHTML(x,i,n){
  return `<section class="fcard ${paperCls(x.paper)}" id="c-${esc(x.id)}" data-id="${esc(x.id)}" data-i="${i}" aria-label="${esc(x.keyword)}">
   <div class="ftop"><div class="l"><span class="tag">${esc(x.paper)}</span><span class="pill ${stt[1]}">${stt[0]}</span><span class="rd" ${rd?'':'hidden'}>${ic('check',14)}Read</span></div><span class="pos">${i+1} of ${n}</span></div>
   <h2 class="ftitle">${esc(x.keyword)}</h2>
-  <div class="fcrumb"><button data-act="crumb" data-k="subject" data-v="${esc(x.subject)}">${esc(x.subject)}</button><button data-act="crumb" data-k="topic" data-v="${esc(x.topic)}">${esc(x.topic)}</button></div>
+  <div class="fcrumb"><button data-act="crumb" data-k="subject" data-v="${esc(x.subject)}">${esc(x.subject)}</button><button data-act="crumb" data-k="topic" data-v="${esc(x.topic)}">${esc(x.topic)}</button>${qcHTML(x)}</div>
   <ul class="pts ${rc?'hide':''}">${x.points.map((p,j)=>`<li style="--i:${Math.min(j,8)}">${esc(p)}</li>`).join('')}</ul>${rc?`<button class="btn soft recall" data-act="reveal" data-id="${esc(x.id)}">Recall it first, then reveal</button>`:''}
   <div class="factions" style="--i:${Math.min(x.points.length,8)}">
    <button class="btn soft ${sv?'on':''}" data-act="save" data-id="${esc(x.id)}" data-save="${esc(x.id)}" aria-pressed="${sv}">${ic('bookmark')}<span>${sv?'Saved':'Save'}</span></button>
@@ -786,7 +858,7 @@ function srow(label,which,key,list,cur,all){
 function toggleRow(label,on,act,which){return `<button class="row" role="switch" aria-checked="${on}" data-act="${act}" data-which="${which}"><span class="grow t" style="font-weight:400">${label}</span><span class="sw"></span></button>`}
 function filterRows(which){
  const f=which==='learn'?learnF:pracF,o=opts(f);
- return `${srow('Paper',which,'paper',o.papers,f.paper,'All papers')}${srow('Subject',which,'subject',o.subjects,f.subject,'All subjects')}${srow('Topic',which,'topic',o.topics,f.topic,'All topics')}${toggleRow('Saved only',f.saved,'saved-toggle',which)}${which==='learn'?toggleRow('Unread only',f.unread,'unread-toggle',which):''}`;
+ return `${srow('Paper',which,'paper',o.papers,f.paper,'All papers')}${srow('Subject',which,'subject',o.subjects,f.subject,'All subjects')}${srow('Topic',which,'topic',o.topics,f.topic,'All topics')}${which==='practice'?srow('Question type',which,'qtype',['PYQ','Original'],f.qtype||'All','All questions'):''}${toggleRow('Saved only',f.saved,'saved-toggle',which)}${which==='learn'?toggleRow('Unread only',f.unread,'unread-toggle',which):''}`;
 }
 function filterSheetHTML(){
  const n=feedItems().length;
@@ -805,8 +877,8 @@ function tile(m,cls,icon,count,label,empty){
  return `<button class="tile ${cls}" data-act="mode" data-m="${m}" ${count?'':'disabled'}><span class="chipic">${ic(icon,20)}</span><div><b>${count}</b><span class="l">${count?label:empty}</span></div></button>`;
 }
 function viewPractice(){
- const all=filterItems(pracF).length,m=db.size?Math.min(db.size,all):all,due=dueItems().length,weak=weakItems().length,fresh=freshItems().length,saved=savedItems().length;
- const smartN=db.items.length?Math.min(db.size||db.items.length,db.items.length):0;
+ const all=practiceUnits().length,m=db.size?Math.min(db.size,all):all,due=dueUnits().length,weak=weakUnits().length,fresh=freshUnits().length,saved=savedUnits().length;
+ const UN=allUnits().length,smartN=UN?Math.min(db.size||UN,UN):0;
  return `<div class="page"><div class="hdr"><h1 class="large">Practice</h1></div>
  <p class="lead">Pick a mode. Your answers decide what comes back next.</p>
  <button class="mix" data-act="mode" data-m="mix" ${smartN?'':'disabled'}><div class="mt"><h3>Smart mix</h3><p>${smartN} question${smartN===1?'':'s'}. Due first, then weak spots, then new.</p></div><span class="go">${ic('play',22)}</span></button>
@@ -838,16 +910,32 @@ function explainHTML(x,chosen,withPoints){
  const ok=chosen===LET.indexOf(x.correct);
  return `<div class="exp" id="exp"><h4 style="color:${ok?'var(--green)':'var(--coral)'}">${chosen<0?'Time’s up':ok?'Correct':'Not quite'}</h4><p>${esc(x.explanation)}</p>${withPoints?`<div class="kp"><h4>Key points</h4><ul class="pts">${x.points.map(p=>`<li>${esc(p)}</li>`).join('')}</ul></div>`:''}</div>`;
 }
-function quizSheetHTML(id){
- const x=qv(id);if(!x)return '';
- const a=feedAns[id];
- return `<div class="shd"><h3>${esc(x.keyword)}</h3><button class="ibtn" data-act="close-sheet" aria-label="Close" style="margin-right:-10px">${ic('x')}</button></div>
- ${questionMetaHTML(x)}<p class="sq">${esc(x.question)}</p>${optsHTML(x,a,'quiz-answer')}${a!=null?explainHTML(x,a,false)+`<button class="btn dark wide" style="margin-top:14px" data-act="quiz-next">Continue</button>`:''}`;
+let qz=null;
+function startQuiz(kid,opt={}){
+ const us=kUnits(kid);if(!us.length)return;
+ let pick=opt.uid?us.filter(u=>u.uid===opt.uid):opt.all?us.slice():chooseUnits(us,5,0);
+ if(!pick.length)pick=shuffle(us).slice(0,5);
+ if(!opt.uid&&!opt.all)pick=spread(pick);
+ pick.forEach(u=>delete QV[u.uid]);
+ qz={kid,ids:pick.map(u=>u.uid),i:0,ans:{},correct:0,total:us.length,single:!!opt.uid};
+}
+function quizSheetHTML(){
+ const z=qz;if(!z)return '';const x=byId(z.kid);if(!x)return '';const n=z.ids.length;
+ const head=`<div class="shd"><h3>${esc(x.keyword)}</h3><button class="ibtn" data-act="close-sheet" aria-label="Close" style="margin-right:-10px">${ic('x')}</button></div>`;
+ if(z.i>=n){
+  const more=!z.single&&z.total>n;
+  return `${head}<p class="qscore"><b>${z.correct}</b> of ${n} correct</p><p class="note">${z.correct===n?'Clean sweep. ':'Missed questions come back sooner. '}This keyword has ${z.total} question${z.total===1?'':'s'}.</p>
+  <div class="sgrid">${more?`<button class="btn dark wide" data-act="quiz-more" data-id="${esc(z.kid)}">Next set of questions</button>`:''}<button class="btn ${more?'soft':'dark'} wide" data-act="quiz-done">Done</button></div>`;
+ }
+ const uid=z.ids[z.i],q=qv(uid),a=z.ans[uid];
+ const dots=n>1?`<div class="qdots" aria-hidden="true">${z.ids.map((id,j)=>{const r=z.ans[id];return `<i class="${j===z.i?'cur':''} ${r?r.ok?'ok':'no':''}"></i>`}).join('')}</div>`:'';
+ return `${head}${dots}${n>1?`<p class="note" style="margin:-6px 0 4px">Question ${z.i+1} of ${n}${z.total>n?`, from ${z.total} in this keyword`:''}</p>`:''}
+ ${questionMetaHTML(q)}<p class="sq">${esc(q.question)}</p>${optsHTML(q,a?a.i:null,'quiz-answer')}${a?explainHTML(q,a.i,false)+`<button class="btn dark wide" style="margin-top:14px" data-act="quiz-next">${z.i+1>=n?'See result':'Next question'}</button>`:''}`;
 }
 function viewSession(){
  const s=session,n=s.ids.length;
  if(s.i>=n)return viewSummary();
- const id=s.ids[s.i],x=qv(id),a=s.answers[id],done=a!=null,last=s.i===n-1,sv=db.saved.has(id);
+ const id=s.ids[s.i],x=qv(id),a=s.answers[id],done=a!=null,last=s.i===n-1,sv=db.saved.has(x.id);
  return `<div class="sess"><div class="sbody">
   <div class="shead"><button class="ibtn" data-act="close-session" aria-label="End practice">${ic('x')}</button><span class="spos">${s.i+1} of ${n}</span><span class="slot">${s.combo>=2?`<span class="combo">${ic('flame',16)}${s.combo}</span>`:''}</span></div>
   ${s.timed?`<div class="tmr ${done?'stop':''}" style="--sd:${SPRINT_MS/1000}s" role="timer" aria-label="Time left"><i></i></div>`:`<div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${s.i+(done?1:0)}"><i style="width:${(s.i+(done?1:0))/n*100}%"></i></div>`}
@@ -855,11 +943,11 @@ function viewSession(){
   ${questionMetaHTML(x)}<h2 class="sq big">${esc(x.question)}</h2>
   ${optsHTML(x,a,'answer')}${done?explainHTML(x,a,true):''}
  </div>
- <div class="sbar"><button class="btn soft ${sv?'on':''}" data-act="save" data-id="${esc(id)}" data-save="${esc(id)}" aria-pressed="${sv}" aria-label="${sv?'Saved':'Save'}" style="padding:0 18px">${ic('bookmark')}</button>
+ <div class="sbar"><button class="btn soft ${sv?'on':''}" data-act="save" data-id="${esc(x.id)}" data-save="${esc(x.id)}" aria-pressed="${sv}" aria-label="${sv?'Saved':'Save'}" style="padding:0 18px">${ic('bookmark')}</button>
  <button class="btn dark" data-act="next" ${done?'':'disabled'}>${last?'Finish':'Next question'}</button></div></div>`;
 }
 function viewSummary(){
- const s=session,n=s.ids.length,missed=s.missed.map(byId).filter(Boolean),pct=Math.round(s.correct/n*100);
+ const s=session,n=s.ids.length,missed=uniq(s.missed.map(kidOf)).map(byId).filter(Boolean),pct=Math.round(s.correct/n*100);
  const msg=s.correct===n?'Clean sweep.':s.correct>=n/2?'Solid. A quick look at the misses will lock it in.':'Worth another pass through the notes.';
  return `<div class="sess"><div class="sbody"><div class="shead"><span style="width:44px"></span><span class="spos">Complete</span><button class="ibtn" data-act="close-session" aria-label="Close">${ic('x')}</button></div>
  <div class="score"><span id="sc">${reduce?s.correct:0}</span><small> of ${n}</small></div>
@@ -867,21 +955,25 @@ function viewSummary(){
  <div class="sumpills"><span class="pill ${pct>=70?'green':pct>=40?'orange':'red'}">${pct}% correct</span>${s.best>=3?`<span class="pill orange">Best streak ${s.best}</span>`:''}${s.daily&&todayCount()>=db.goal?`<span class="pill green">Daily goal complete</span>`:''}</div>
  ${missed.length?`<h2 class="sec sm">Worth revisiting</h2><div class="group">${missed.map(x=>`<button class="row" data-act="open-learn" data-id="${esc(x.id)}"><div class="grow"><div class="t">${esc(x.keyword)}</div><div class="s">${esc(x.topic)}</div></div>${ic('chr',18)}</button>`).join('')}</div>`:''}
  </div>
- <div class="sbar">${missed.length?`<button class="btn soft" data-act="another" style="flex:1">Another set</button><button class="btn dark" data-act="again">Retry ${missed.length} missed</button>`:`<button class="btn soft" data-act="close-session" style="flex:1">Done</button><button class="btn dark" data-act="another">Another set</button>`}</div></div>`;
+ <div class="sbar">${missed.length?`<button class="btn soft" data-act="another" style="flex:1">Another set</button><button class="btn dark" data-act="again">Retry ${s.missed.length} missed</button>`:`<button class="btn soft" data-act="close-session" style="flex:1">Done</button><button class="btn dark" data-act="another">Another set</button>`}</div></div>`;
 }
 
 /* ---------- views: add / library / backup ---------- */
+function previewQs(it){
+ const qs=it.questions&&it.questions.length?it.questions:[it],py=qs.filter(q=>q.type==='pyq').length;
+ return `<details><summary>${qs.length} question${qs.length===1?'':'s'}${py?`, ${py} PYQ`:''}</summary>${qs.map(q=>`<div class="pq">${questionMetaHTML(q)}<b>${esc(q.question)}</b><ol type="A">${q.options.map((o,j)=>`<li ${j===correctIndex(q)?'class="ok"':''}>${esc(o)}</li>`).join('')}</ol><p class="m">${esc(q.explanation)}</p></div>`).join('')}</details>`;
+}
 function previewHTML(){
  if(!paste.trim())return '';
  const good=analysis.filter(a=>a.r.status!=='bad'&&!a.it._backup).length;
  const bk=analysis.find(a=>a.it._backup);
  if(bk){const n=bk.it._backup.items.length;return `<div class="pv"><div class="top"><div class="t">Nitya backup</div><span class="pill orange">Backup</span></div><p class="m">${n} keyword${n===1?'':'s'}, plus your saved items and progress. Restoring merges with what’s already here.</p></div><button class="btn dark wide" data-act="restore-paste">Restore backup</button>`}
  return `<h2 class="sec sm">Preview</h2>`+analysis.map(({it,r})=>{
-  const cls={new:'green',update:'orange',bad:'red'}[r.status],lab={new:'New keyword',update:'Adds to keyword',bad:'Needs fixing'}[r.status];
+  const cls={new:'green',update:'orange',bad:'red'}[r.status],lab=r.status==='update'&&r.newQ!=null?(r.newQ?`Adds ${r.newQ} new question${r.newQ===1?'':'s'}`:'Nothing new'):{new:'New keyword',update:'Adds to keyword',bad:'Needs fixing'}[r.status];
   return `<div class="pv"><div class="top"><div class="t">${esc(it.keyword||'Untitled')}</div><span class="pill ${cls}">${lab}</span></div>
   ${!it._err?`<p class="m">${[it.paper,it.subject,it.topic].filter(Boolean).map(esc).join(', ')}</p>`:''}
   ${r.errors.map(e=>`<p class="e">${esc(e)}</p>`).join('')}${r.warnings.map(w=>`<p class="w">${esc(w)}</p>`).join('')}
-  ${!it._err&&!r.errors.length?`<details><summary>Preview question${it.type==='pyq'?' · PYQ'+(it.year?' '+esc(it.year):''):''}</summary>${questionMetaHTML(it)}<b>${esc(it.question)}</b><ol type="A">${it.options.map((o,j)=>`<li ${j===it._ix?'class="ok"':''}>${esc(o)}</li>`).join('')}</ol><p class="m">${esc(it.explanation)}</p></details>`:''}</div>`}).join('')
+  ${!it._err&&!r.errors.length?previewQs(it):''}</div>`}).join('')
   +`<button class="btn dark wide" data-act="add-paste" ${good?'':'disabled'}>Add ${good} to library</button>`;
 }
 function libList(){
@@ -904,14 +996,17 @@ function itemText(x){
 }
 function itemSheetHTML(id){
  const x=byId(id);if(!x)return '';
- const s=db.srs[id],st=stateOf(id);
- const info=!s||s.r+s.w===0?'Not attempted yet':`Answered ${s.r+s.w} time${s.r+s.w===1?'':'s'}, ${Math.round(s.r/(s.r+s.w)*100)}% correct`;
+ const us=kUnits(id),st=stateOf(id),att=us.filter(u=>db.qsrs[u.uid]),ans=att.reduce((a,u)=>a+db.qsrs[u.uid].r+db.qsrs[u.uid].w,0),right=att.reduce((a,u)=>a+db.qsrs[u.uid].r,0),py=us.filter(u=>u.q.type==='pyq').length;
+ const info=ans?`${att.length} of ${us.length} tried, ${Math.round(right/ans*100)}% correct`:'Not attempted yet';
  return `<div class="shd"><h3>${esc(x.keyword)}</h3><button class="ibtn" data-act="close-sheet" aria-label="Close" style="margin-right:-10px">${ic('x')}</button></div>
  <div class="minirow" style="margin:-6px 0 4px"><span class="pill paper ${paperCls(x.paper)}">${esc(x.paper)}</span><span class="pill ${st==='mastered'?'green':st==='learning'?'orange':''}">${st==='new'?'New':st==='mastered'?'Mastered':'Learning'}</span></div>
- <p class="note">${esc(x.subject)}, ${esc(x.topic)}. ${x.points.length} key points · ${questionBank(x).length} question${questionBank(x).length===1?'':'s'}. ${info}.</p>
+ <p class="note">${esc(x.subject)}, ${esc(x.topic)}. ${x.points.length} key points, ${us.length} question${us.length===1?'':'s'}${py?` (${py} PYQ)`:''}. ${info}.</p>
  <div class="sgrid"><button class="btn dark wide" data-act="open-learn" data-id="${esc(id)}">Open in Learn</button>
- <div class="sgrid two" style="margin:0"><button class="btn soft" data-act="quiz" data-id="${esc(id)}">Test yourself</button><button class="btn soft" data-act="copy-item" data-id="${esc(id)}">${ic('copy',18)}Copy text</button></div>
- <button class="btn quiet danger wide" data-act="item-del" data-id="${esc(id)}">${ic('trash',18)}Delete keyword</button></div>`;
+ <div class="sgrid two" style="margin:0"><button class="btn soft" data-act="quiz" data-id="${esc(id)}">Quick test</button><button class="btn soft" data-act="quiz-all" data-id="${esc(id)}">All ${us.length}</button></div>
+ <button class="btn soft wide" data-act="copy-item" data-id="${esc(id)}">${ic('copy',18)}Copy text</button></div>
+ <h2 class="sec sm">Questions</h2><div class="group qlist">${us.map(u=>{const s=db.qsrs[u.uid],q=u.q,tag=q.type==='pyq'?['PYQ',q.year,q.questionNumber?'Q. '+q.questionNumber:''].filter(Boolean).join(' '):'Original',tr=s&&s.r+s.w?`${s.r} of ${s.r+s.w} right`:'Not tried';
+  return `<button class="row qrow" data-act="quiz-one" data-id="${esc(u.uid)}" data-kid="${esc(id)}"><i class="sdot ${qStat(u)}"></i><div class="grow"><div class="qt">${esc(q.question.split('\n')[0])}</div><div class="s one">${esc(tag)}, ${esc(tr)}</div></div>${ic('chr',18)}</button>`}).join('')}</div>
+ <button class="btn quiet danger wide" style="margin-top:16px" data-act="item-del" data-id="${esc(id)}">${ic('trash',18)}Delete keyword</button>`;
 }
 function viewAdd(){
  const titles={add:'Add keywords',library:'Library',backup:'Backup'};
@@ -965,22 +1060,23 @@ function closeSheet(){const s=$('#sheet');s.classList.remove('open');s.setAttrib
 
 /* ---------- actions ---------- */
 function startSession(list,o={}){
+ const ks=new Set();list=list.filter(u=>u&&!ks.has(u.key)&&ks.add(u.key));
  if(!list.length){toast('No questions match. Adjust your filters or add content.');return}
- QV={};list.forEach(x=>{metaOf(x.id).seen=Date.now()});
- session={ids:shuffle(list).map(x=>x.id),i:0,answers:{},correct:0,missed:[],combo:0,best:0,mode:o.mode||'custom',timed:!!o.timed,daily:!!o.daily};
+ QV={};list.forEach(u=>{metaOf(u.kid).seen=Date.now()});
+ session={ids:spread(list).map(u=>u.uid),i:0,answers:{},correct:0,missed:[],combo:0,best:0,mode:o.mode||'custom',timed:!!o.timed,daily:!!o.daily};
  closeSheet();render();
 }
 function runMode(m){
- let l;
+ let l;const U=allUnits();
  switch(m){
-  case 'mix':l=pickSmart(db.size||db.items.length);break;
-  case 'due':l=cut(dueItems());break;
-  case 'weak':l=cut(ranked(weakItems()));break;
-  case 'fresh':l=cut(ranked(freshItems()));break;
-  case 'saved':l=cut(ranked(savedItems()));break;
-  case 'sprint':{const a=db.items.filter(x=>db.srs[x.id]),r=ranked(a),p=(r.length?r:a).sort((x,y)=>db.srs[x.id].b-db.srs[y.id].b).slice(0,SPRINT_N);l=p.length>=SPRINT_N?p:[...p,...ranked(freshItems()).slice(0,SPRINT_N-p.length)];break}
-  case 'custom':l=cut(ranked(filterItems(pracF)));if(!l.length)l=cut(shuffle(filterItems(pracF)));break;
-  default:l=cut(ranked());
+  case 'mix':l=pickSmart(db.size||U.length);break;
+  case 'due':l=cutU(dueUnits());break;
+  case 'weak':l=cutU(rankU(weakUnits()));break;
+  case 'fresh':l=cutU(rankU(freshUnits()));break;
+  case 'saved':l=cutU(rankU(savedUnits()));break;
+  case 'sprint':{const a=U.filter(u=>db.qsrs[u.uid]),r=rankU(a,2),p=(r.length?r:a).slice().sort((x,y)=>db.qsrs[x.uid].b-db.qsrs[y.uid].b).slice(0,SPRINT_N);l=p.length>=SPRINT_N?p:[...p,...rankU(freshUnits(),2).filter(u=>!p.includes(u)).slice(0,SPRINT_N-p.length)];break}
+  case 'custom':{const pu=practiceUnits();l=cutU(rankU(pu));if(!l.length)l=cutU(shuffle(pu));break}
+  default:l=cutU(rankU(U));
  }
  startSession(l,{mode:m,timed:m==='sprint'});
 }
@@ -988,9 +1084,11 @@ function answer(i){
  const s=session;if(!s)return;
  const id=s.ids[s.i];if(s.answers[id]!=null)return;
  clearTimeout(tmT);
- s.answers[id]=i;const x=qv(id),ok=i===LET.indexOf(x.correct);
+ s.answers[id]=i;const x=qv(id),ok=i===LET.indexOf(x.correct),slow=s.timed&&Date.now()-(s.t0||0)>SPRINT_MS*2/3;
  if(ok){s.correct++;s.combo++;s.best=Math.max(s.best,s.combo)}else{s.missed.push(id);s.combo=0}
- db.seen.add(id);grade(id,ok,i<0,s.timed&&Date.now()-(s.t0||0)>SPRINT_MS*2/3);markAnswered(id);persist();buzz(ok?12:[24,40,24]);
+ db.seen.add(x.id);grade(x.id,ok,i<0,slow);gradeQ(id,ok,i<0,slow);
+ for(const u of allUnits())if(u.key===x.qkey&&u.uid!==id)gradeQ(u.uid,ok,i<0,slow); /* the same PYQ filed under two keywords counts for both */
+ markAnswered(id);persist();buzz(ok?12:[24,40,24]);
  render({keep:true});
  const e=$('#exp');if(e)e.scrollIntoView({block:'nearest',behavior:smooth()});
 }
@@ -1013,16 +1111,17 @@ async function shareItem(id){
  copyText(text).then(ok=>toast(ok?'Notes copied':'Couldn’t copy here.'));
 }
 function removeItems(ids){
- const set=new Set(ids),stash={items:db.items.filter(x=>set.has(x.id)),saved:[...set].filter(i=>db.saved.has(i)),seen:[...set].filter(i=>db.seen.has(i)),read:[...set].filter(i=>db.read.has(i)),srs:{},resume:set.has(db.resume)?db.resume:''};
+ const set=new Set(ids),stash={items:db.items.filter(x=>set.has(x.id)),saved:[...set].filter(i=>db.saved.has(i)),seen:[...set].filter(i=>db.seen.has(i)),read:[...set].filter(i=>db.read.has(i)),srs:{},qsrs:{},resume:set.has(db.resume)?db.resume:''};
  for(const i of set)if(db.srs[i])stash.srs[i]=db.srs[i];
- db.items=db.items.filter(x=>!set.has(x.id));
+ for(const u of Object.keys(db.qsrs))if(set.has(kidOf(u))){stash.qsrs[u]=db.qsrs[u];delete db.qsrs[u]}
+ db.items=db.items.filter(x=>!set.has(x.id));dirty();
  for(const i of set){db.saved.delete(i);db.seen.delete(i);db.read.delete(i);delete db.srs[i]}
  if(set.has(db.resume))db.resume='';
  persist();return stash;
 }
 function undoDelete(){
  const s=lastDel;if(!s)return;lastDel=null;
- db.items.push(...s.items);s.saved.forEach(i=>db.saved.add(i));s.seen.forEach(i=>db.seen.add(i));s.read.forEach(i=>db.read.add(i));Object.assign(db.srs,s.srs);if(s.resume)db.resume=s.resume;
+ db.items.push(...s.items);dirty();s.saved.forEach(i=>db.saved.add(i));s.seen.forEach(i=>db.seen.add(i));s.read.forEach(i=>db.read.add(i));Object.assign(db.srs,s.srs);Object.assign(db.qsrs,s.qsrs||{});if(s.resume)db.resume=s.resume;
  persist();render({keep:true});toast(`Restored ${s.items.length} keyword${s.items.length===1?'':'s'}`);
 }
 function deleteWithUndo(ids){
@@ -1031,7 +1130,7 @@ function deleteWithUndo(ids){
  toast(n===1?`Deleted ${lastDel.items[0].keyword}`:`Deleted ${n} keywords`,{label:'Undo',fn:undoDelete});
 }
 function addParsed(){
- const names=new Set(),added=new Set(),updated=new Set();let bad=0;const now=Date.now();
+ const names=new Set(),added=new Set(),updated=new Set();let bad=0,nq=0;const now=Date.now();
  for(const it of parseInput(paste)){
   if(it._backup)continue;
   const r=validate(it,names);if(r.status==='bad'){bad++;continue}
@@ -1041,34 +1140,38 @@ function addParsed(){
    ex={id,keyword:it.keyword.trim(),paper:it.paper,subject:it.subject,topic:it.topic,points:it.points,question:first.question,options:first.options,correct:first.correct,explanation:first.explanation,source:first.source,type:first.type,year:first.year,questionNumber:first.questionNumber,questions:[],variants:[],evergreen:!!it.evergreen,addedOn:now,updatedOn:0};
    db.items.push(ex);added.add(ex.id);
   }else if(!added.has(ex.id))updated.add(ex.id);
-  const combined=uniqueQuestions([...(Array.isArray(ex.questions)?ex.questions:questionBank(ex)),...incoming]);
+  const before=added.has(ex.id)?0:questionBank(ex).length;
+  const combined=uniqueQuestions([...(Array.isArray(ex.questions)?ex.questions:questionBank(ex)),...incoming]);nq+=combined.length-before;
   ex.questions=combined;const first=combined[0]||incoming[0];
   ex.keyword=ex.keyword||it.keyword.trim();
   ex.paper=it.paper||ex.paper;ex.subject=it.subject||ex.subject;ex.topic=it.topic||ex.topic;
   if(Array.isArray(it.points)&&it.points.length)ex.points=it.points;
   ex.evergreen=!!(it.evergreen||ex.evergreen);ex.variants=combined.slice(1);
   ex.question=first.question;ex.options=first.options;ex.correct=first.correct;ex.explanation=first.explanation;ex.source=first.source;ex.type=first.type;ex.year=first.year;ex.questionNumber=first.questionNumber;ex.updatedOn=ex.addedOn===now?0:now;
-  delete QV[ex.id];
+  QV={};dirty();
  }
  if(!added.size&&!updated.size){toast(bad?'Fix the highlighted items first.':'No valid questions found.');return}
  paste='';persist();render({keep:true});
- const a=added.size,u=updated.size;toast(`${a?a+' keyword'+(a===1?'':'s')+' added':''}${a&&u?', ':''}${u?u+' keyword'+(u===1?'':'s')+' updated':''}${bad?` · ${bad} skipped`:''}`);
+ const a=added.size,u=updated.size;toast(`${a?a+' keyword'+(a===1?'':'s')+' added':''}${a&&u?', ':''}${u?u+' keyword'+(u===1?'':'s')+' updated':''}${nq?` · ${nq} question${nq===1?'':'s'}`:''}${bad?` · ${bad} skipped`:''}`);
 }
-function backupObj(){return {app:'Nitya',formatVersion:5,exportedAt:new Date().toISOString(),items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,daily:db.daily,goal:db.goal,flags:{meta:db.flags.meta||{},kh:db.flags.kh||[]}}}
+function backupObj(){return {app:'Nitya',formatVersion:6,exportedAt:new Date().toISOString(),items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,qsrs:db.qsrs,daily:db.daily,goal:db.goal,flags:{meta:db.flags.meta||{},kh:db.flags.kh||[]}}}
 function restoreBackup(b){
  let add=0,upd=0;const now=Date.now(),map={};
  for(const raw of Array.isArray(b.items)?b.items:[]){
-  const n=normalize(raw);if(n._err||!n.keyword||!questionBank(n).length)continue;
+  const n=normalize(raw);delete n._dropped;if(n._err||!n.keyword||!questionBank(n).length)continue;
   n.id=S(raw.id)||('k-'+slug(n.keyword));n.addedOn=Number(raw.addedOn)||now;
   const ex=db.items.find(x=>x.keyword.trim().toLowerCase()===n.keyword.trim().toLowerCase());
   if(ex){map[n.id]=ex.id;const combined=uniqueQuestions([...questionBank(ex),...questionBank(n)]);Object.assign(ex,n,{id:ex.id,addedOn:ex.addedOn,questions:combined,variants:combined.slice(1),question:combined[0].question,options:combined[0].options,correct:combined[0].correct,explanation:combined[0].explanation});upd++}else{map[n.id]=n.id;db.items.push(n);add++}
  }
+ dirty();
  const ids=new Set(db.items.map(x=>x.id)),m=i=>ids.has(map[i]||i)?(map[i]||i):null;
  (Array.isArray(b.saved)?b.saved:[]).forEach(i=>{const k=m(i);if(k)db.saved.add(k)});
  (Array.isArray(b.seen)?b.seen:[]).forEach(i=>{const k=m(i);if(k)db.seen.add(k)});
  (Array.isArray(b.read)?b.read:[]).forEach(i=>{const k=m(i);if(k)db.read.add(k)});
  const sr=cleanSrs(b.srs);
  for(const i of Object.keys(sr)){const k=m(i);if(!k)continue;const cur=db.srs[k];if(!cur||sr[i].l>cur.l)db.srs[k]=sr[i]}
+ const qr=cleanSrs(b.qsrs);
+ for(const u of Object.keys(qr)){const k0=kidOf(u),k=m(k0);if(!k)continue;const nu=k+u.slice(k0.length),cur=db.qsrs[nu];if(!cur||qr[u].l>cur.l)db.qsrs[nu]=qr[u]}
  for(const k of db.seen)if(!db.srs[k])db.srs[k]={b:1,due:addDays(1),r:0,w:0,l:0};
  const d=legacyDaily(b.daily);
  for(const k of Object.keys(d)){const cur=db.daily[k]?.ids||[];db.daily[k]={ids:uniq(cur.concat(d[k].ids))}}
@@ -1089,7 +1192,7 @@ async function exportFile(){
  try{const u=URL.createObjectURL(new Blob([json],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);stamp();toast('Backup file saved');if(tab==='add')render({keep:true})}
  catch(_){toast('Saving files isn’t available here. Use Copy backup.')}
 }
-const FORMAT=`Give me study notes for the keyword "KEYWORD" in exactly this format, with 5 to 10 key points and one or more MCQs. Repeat the block with the same keyword to add more questions to one keyword card. Mark a question Type: PYQ and include Year, Question Number and Source only when verified as an actual UPSC previous-year question. Otherwise mark Type: Original.
+const FORMAT=`Give me study notes for the keyword "KEYWORD" in exactly this format, with 5 to 10 key points and one or more MCQs. Repeat the block with the same keyword to add more questions to one keyword card; repeated blocks only need the Keyword line and the question fields. Mark a question Type: PYQ and include Year, Question Number and Source only when verified as an actual UPSC previous-year question. Otherwise mark Type: Original.
 
 Keyword: 
 Paper: GS 2
@@ -1134,9 +1237,13 @@ $('#shell').addEventListener('click',e=>{
   case 'paper-learn':learnF=newF();learnF.paper=b.dataset.v;search='';searching=false;session=null;tab='learn';scrollPos.learn=0;render();break;
   case 'save':toggleSave(id);break;
   case 'share':shareItem(id);break;
-  case 'quiz':delete feedAns[id];delete QV[id];openSheet(quizSheetHTML(id));$('#sheet').dataset.qid=id;break;
-  case 'quiz-answer':{const q=$('#sheet').dataset.qid;if(feedAns[q]!=null)break;const i=Number(b.dataset.i),x=qv(q);feedAns[q]=i;const ok=i===LET.indexOf(x.correct);db.seen.add(q);grade(q,ok);markAnswered(q);persist();buzz(ok?12:[24,40,24]);$('#sbody').innerHTML=quizSheetHTML(q);const ex=$('#sbody #exp');if(ex)ex.scrollIntoView({block:'nearest',behavior:smooth()});break}
-  case 'quiz-next':{const q=$('#sheet').dataset.qid;closeSheet();const c=document.getElementById('c-'+q),n=c&&c.nextElementSibling;if(n)setTimeout(()=>n.scrollIntoView({block:'start',behavior:smooth()}),250);break}
+  case 'quiz':startQuiz(id);openSheet(quizSheetHTML());break;
+  case 'quiz-all':startQuiz(id,{all:true});openSheet(quizSheetHTML());break;
+  case 'quiz-one':startQuiz(b.dataset.kid,{uid:id});openSheet(quizSheetHTML());break;
+  case 'quiz-more':startQuiz(id);$('#sbody').innerHTML=quizSheetHTML();{const p=$('#sheet .panel');if(p)p.scrollTop=0}break;
+  case 'quiz-answer':{const z=qz;if(!z)break;const uid=z.ids[z.i];if(z.ans[uid])break;const i=Number(b.dataset.i),q=qv(uid),ok=i===LET.indexOf(q.correct);z.ans[uid]={i,ok};if(ok)z.correct++;db.seen.add(z.kid);grade(z.kid,ok);gradeQ(uid,ok);markAnswered(uid);persist();buzz(ok?12:[24,40,24]);$('#sbody').innerHTML=quizSheetHTML();const ex=$('#sbody #exp');if(ex)ex.scrollIntoView({block:'nearest',behavior:smooth()});break}
+  case 'quiz-next':if(qz&&qz.ans[qz.ids[qz.i]]){qz.i++;$('#sbody').innerHTML=quizSheetHTML();const p=$('#sheet .panel');if(p)p.scrollTop=0}break;
+  case 'quiz-done':{const kid=qz&&qz.kid;closeSheet();qz=null;const c=kid&&document.getElementById('c-'+kid),n=c&&c.nextElementSibling;if(n&&tab==='learn')setTimeout(()=>n.scrollIntoView({block:'start',behavior:smooth()}),250);break}
   case 'close-sheet':closeSheet();break;
   case 'toast-act':{const f=toastFn;toastFn=null;$('#toast').classList.remove('on','act');if(f)f();break}
   case 'next-card':{const c=b.closest('.fcard'),n=c&&c.nextElementSibling;if(n)n.scrollIntoView({block:'start',behavior:smooth()});break}
@@ -1149,18 +1256,18 @@ $('#shell').addEventListener('click',e=>{
   case 'crumb':{const k=b.dataset.k;learnF=newF();learnF[k]=b.dataset.v;search='';searching=false;renderFeedList();toast(`Showing ${b.dataset.v}`);break}
   case 'search-open':searching=true;$('#frow').innerHTML=fbarHTML();{const q=$('#q');if(q)q.focus()}break;
   case 'search-close':searching=false;search='';renderFeedList();break;
-  case 'practice-feed':startSession([...feedList.filter(x=>db.read.has(x.id)),...feedList.filter(x=>!db.read.has(x.id))].slice(0,10),{mode:'custom'});break;
+  case 'practice-feed':{const ks=[...feedList.filter(x=>db.read.has(x.id)),...feedList.filter(x=>!db.read.has(x.id))].slice(0,10),us=unitsFor(ks);let l=chooseUnits(us,10,2);if(!l.length)l=shuffle(us).slice(0,10);startSession(l,{mode:'custom'});break}
   case 'saved-toggle':{const w=b.dataset.which,f=w==='learn'?learnF:pracF;f.saved=!f.saved;if(w==='learn'){$('#sbody').innerHTML=filterSheetHTML();renderFeedList()}else render({keep:true});break}
   case 'unread-toggle':learnF.unread=!learnF.unread;$('#sbody').innerHTML=filterSheetHTML();renderFeedList();break;
   case 'mode':runMode(b.dataset.m);break;
   case 'size':db.size=Number(b.dataset.v);persist();render({keep:true});break;
-  case 'weak-practice':{const w=weakTopics()[Number(b.dataset.i)];if(w)startSession(cut(shuffle(w.items)),{mode:'weak'});break}
+  case 'weak-practice':{const w=weakTopics()[Number(b.dataset.i)];if(w){const us=unitsFor(w.items),wk=us.filter(u=>{const s=db.qsrs[u.uid];return s&&s.w>0}),r=rankU(wk.length?wk:us,0);startSession(cutU(r.length?r:shuffle(us)),{mode:'weak'})}break}
   case 'reset-practice':pracF=newF();render({keep:true});break;
   case 'begin':runMode('custom');break;
   case 'answer':answer(Number(b.dataset.i));break;
   case 'next':if(session&&session.answers[session.ids[session.i]]!=null){session.i++;render()}break;
-  case 'again':{const ids=session.missed.slice();startSession(ids.map(byId).filter(Boolean),{mode:'retry'});break}
-  case 'another':{const m=session.mode;if(m==='retry'||!m)startSession(cut(shuffle(db.items)),{mode:'custom'});else runMode(m);break}
+  case 'again':{const ids=session.missed.slice();startSession(ids.map(unitById).filter(Boolean),{mode:'retry'});break}
+  case 'another':{const m=session.mode;if(m==='retry'||!m)startSession(cutU(shuffle(allUnits())),{mode:'custom'});else runMode(m);break}
   case 'close-session':endSess();session=null;render();break;
   case 'seg':addSeg=b.dataset.v;libSel=null;render();break;
   case 'reveal':{revealed.add(id);const c=document.getElementById('c-'+id);if(c){const u=c.querySelector('.pts');if(u)u.classList.remove('hide')}b.remove();break}
@@ -1184,7 +1291,7 @@ $('#shell').addEventListener('click',e=>{
   case 'copy-backup':copyText(JSON.stringify(backupObj())).then(ok=>{if(ok){stamp();render({keep:true})}toast(ok?'Backup copied':'Couldn’t copy here. Use Save backup file.')});break;
   case 'import':$('#file').click();break;
   case 'reset-progress':openSheet(`<div class="shd"><h3>Reset progress?</h3></div><p class="note" style="margin:-6px 0 18px">Streaks, history and the review schedule go back to zero. Your keywords and saved items stay.</p><div class="sgrid" style="margin-top:0"><button class="btn red wide" data-act="reset-go">Reset progress</button><button class="btn soft wide" data-act="close-sheet">Cancel</button></div>`);break;
-  case 'reset-go':db.seen=new Set();db.read=new Set();db.srs={};db.daily={};db.resume='';persist();closeSheet();render({keep:true});toast('Progress reset');break;
+  case 'reset-go':db.seen=new Set();db.read=new Set();db.srs={};db.qsrs={};db.daily={};db.resume='';persist();closeSheet();render({keep:true});toast('Progress reset');break;
  }
 });
 $('#shell').addEventListener('change',e=>{
