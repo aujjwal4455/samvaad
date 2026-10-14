@@ -637,7 +637,7 @@ function why(x){const s=db.srs[x.id];if(!s)return 'New keyword';if(s.k===0)retur
 let QV={};
 function questionMetaHTML(q){
  if(!q||S(q.type).toLowerCase()!=='pyq')return '';
- const details=[q.year,q.questionNumber?`Q. ${q.questionNumber}`:''].filter(Boolean);
+ const details=[q.year].filter(Boolean);
  return `<div class="qmeta" aria-label="Previous year question${details.length?', '+esc(details.join(', ')):''}">PYQ${details.length?`<span class="qdot"></span>${details.map(esc).join(' · ')}`:''}</div>`;
 }
 function questionBank(x){
@@ -991,7 +991,7 @@ function libraryHTML(){
 }
 function itemText(x){
  const bank=questionBank(x);
- const qs=bank.map((q,i)=>`${i?'\n\n---\n\n':''}${q.type==='pyq'?`Type: PYQ\n${q.year?`Year: ${q.year}\n`:''}${q.questionNumber?`Question Number: ${q.questionNumber}\n`:''}${q.source?`Source: ${q.source}\n`:''}`:`Type: Original\n`}Question: ${q.question}\n${q.options.map((o,j)=>`${LET[j]}) ${o}`).join('\n')}\nCorrect: ${q.correct}\nExplanation: ${q.explanation}`).join('');
+ const qs=bank.map((q,i)=>`${i?'\n\n---\n\n':''}${q.type==='pyq'?`Type: PYQ\n${q.year?`Year: ${q.year}\n`:''}${q.source?`Source: ${q.source}\n`:''}`:`Type: Original\n`}Question: ${q.question}\n${q.options.map((o,j)=>`${LET[j]}) ${o}`).join('\n')}\nCorrect: ${q.correct}\nExplanation: ${q.explanation}`).join('');
  return `Keyword: ${x.keyword}\nPaper: ${x.paper}\nSubject: ${x.subject}\nTopic: ${x.topic}\nPoints:\n${x.points.map(p=>'- '+p).join('\n')}\n${qs}`;
 }
 function itemSheetHTML(id){
@@ -1004,7 +1004,7 @@ function itemSheetHTML(id){
  <div class="sgrid"><button class="btn dark wide" data-act="open-learn" data-id="${esc(id)}">Open in Learn</button>
  <div class="sgrid two" style="margin:0"><button class="btn soft" data-act="quiz" data-id="${esc(id)}">Quick test</button><button class="btn soft" data-act="quiz-all" data-id="${esc(id)}">All ${us.length}</button></div>
  <button class="btn soft wide" data-act="copy-item" data-id="${esc(id)}">${ic('copy',18)}Copy text</button></div>
- <h2 class="sec sm">Questions</h2><div class="group qlist">${us.map(u=>{const s=db.qsrs[u.uid],q=u.q,tag=q.type==='pyq'?['PYQ',q.year,q.questionNumber?'Q. '+q.questionNumber:''].filter(Boolean).join(' '):'Original',tr=s&&s.r+s.w?`${s.r} of ${s.r+s.w} right`:'Not tried';
+ <h2 class="sec sm">Questions</h2><div class="group qlist">${us.map(u=>{const s=db.qsrs[u.uid],q=u.q,tag=q.type==='pyq'?['PYQ',q.year].filter(Boolean).join(' '):'Original',tr=s&&s.r+s.w?`${s.r} of ${s.r+s.w} right`:'Not tried';
   return `<button class="row qrow" data-act="quiz-one" data-id="${esc(u.uid)}" data-kid="${esc(id)}"><i class="sdot ${qStat(u)}"></i><div class="grow"><div class="qt">${esc(q.question.split('\n')[0])}</div><div class="s one">${esc(tag)}, ${esc(tr)}</div></div>${ic('chr',18)}</button>`}).join('')}</div>
  <button class="btn quiet danger wide" style="margin-top:16px" data-act="item-del" data-id="${esc(id)}">${ic('trash',18)}Delete keyword</button>`;
 }
@@ -1192,7 +1192,7 @@ async function exportFile(){
  try{const u=URL.createObjectURL(new Blob([json],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);stamp();toast('Backup file saved');if(tab==='add')render({keep:true})}
  catch(_){toast('Saving files isn’t available here. Use Copy backup.')}
 }
-const FORMAT=`Give me study notes for the keyword "KEYWORD" in exactly this format, with 5 to 10 key points and one or more MCQs. Repeat the block with the same keyword to add more questions to one keyword card; repeated blocks only need the Keyword line and the question fields. Mark a question Type: PYQ and include Year, Question Number and Source only when verified as an actual UPSC previous-year question. Otherwise mark Type: Original.
+const FORMAT=`Give me study notes for the keyword "KEYWORD" in exactly this format, with 5 to 10 key points and one or more MCQs. Repeat the block with the same keyword to add more questions to one keyword card; repeated blocks only need the Keyword line and the question fields. Mark a question Type: PYQ and include Year and Source only when verified as an actual UPSC previous-year question. Otherwise mark Type: Original.
 
 Keyword: 
 Paper: GS 2
@@ -1202,7 +1202,6 @@ Points:
 - 
 Type: Original
 Year: 
-Question Number: 
 Source: 
 Question: 
 A) 
