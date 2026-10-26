@@ -1217,6 +1217,11 @@ function viewAdd(){
  <button class="row" data-act="copy-backup"><span class="chipic">${ic('copy',20)}</span><div class="grow"><div class="t">Copy backup</div><div class="s">Paste it into Notes as a second copy</div></div></button>
  <button class="row" data-act="import"><span class="chipic">${ic('down',20)}</span><div class="grow"><div class="t">Restore from file</div><div class="s">Works with older Nitya backups too</div></div></button></div>
  <p class="note">Last backup: ${ago(db.lastBackup)}. Everything stays on this device. Nothing is uploaded anywhere.</p>
+ <h2 class="sec sm">Sync with a friend</h2><div class="group"><button class="row" data-act="sync-export"><span class="chipic">${ic('up',20)}</span><div class="grow"><div class="t">Export sync file</div><div class="s">Keywords and questions only</div></div></button>
+ <button class="row" data-act="sync-copy"><span class="chipic">${ic('copy',20)}</span><div class="grow"><div class="t">Copy sync data</div><div class="s">Paste it into a chat</div></div></button>
+ <button class="row" data-act="sync-import"><span class="chipic">${ic('down',20)}</span><div class="grow"><div class="t">Import sync file</div><div class="s">Preview first. Adds only keywords you don’t have</div></div></button>
+ <button class="row" data-act="sync-paste"><span class="chipic">${ic('clip',20)}</span><div class="grow"><div class="t">Import from clipboard</div><div class="s">If your friend copied the sync data</div></div></button></div>
+ <p class="note">Your notes, progress, streaks and saved items are never sent or changed. A keyword you already have is skipped completely, so nothing of yours is ever changed.</p>
  <h2 class="sec sm">Progress</h2><div class="group"><button class="row" data-act="reset-progress"><span class="chipic t-weak">${ic('refresh',20)}</span><div class="grow"><div class="t">Reset progress</div><div class="s">Clears streaks, history and review schedule. Keeps your keywords.</div></div></button></div>`;
  return `<div class="page"><div class="hdr"><h1 class="large">${titles[addSeg]}</h1></div>${seg}${body}</div>`;
 }
@@ -1383,6 +1388,61 @@ function restoreBackup(b){
  if(b.flags&&Array.isArray(b.flags.queue)){const q=db.flags.queue||(db.flags.queue=[]);for(const e of b.flags.queue)if(e&&S(e.k)&&!q.some(x=>qn(x.k)===qn(e.k)))q.push({k:S(e.k),d:/^\d{4}-\d{2}-\d{2}$/.test(S(e.d))?e.d:todayKey()})}
  syncQueue();persist();return {add,upd};
 }
+
+/* ---- Friend sync: keywords + MCQs only, additive, never overwrites ---- */
+let syncJ=null;
+function syncKey(v){return S(v).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'')}
+function syncObj(){return {app:'Nitya',kind:'sync',formatVersion:1,exportedAt:new Date().toISOString(),items:db.items.map(x=>({id:x.id,keyword:x.keyword,paper:x.paper,subject:x.subject,topic:x.topic,points:x.points,evergreen:!!x.evergreen,addedOn:x.addedOn,questions:questionBank(x)}))}}
+function syncPlan(j){
+ const groups=new Map(),order=[];
+ for(const raw of Array.isArray(j&&j.items)?j.items:[]){
+  const n=normalize(raw);delete n._dropped;
+  if(n._err||!n.keyword)continue;
+  const qs=questionBank(n),k=syncKey(n.keyword);
+  if(!qs.length||!k)continue;
+  const g=groups.get(k);
+  if(g)g.qs=uniqueQuestions([...g.qs,...qs]);else{groups.set(k,{n,qs,raw});order.push(k)}
+ }
+ const adds=[];let same=0;
+ for(const k of order){
+  const g=groups.get(k),ex=db.items.find(x=>syncKey(x.keyword)===k);
+  if(!ex)adds.push(g);else same++; /* strict skip: a keyword you already have is never touched, even if its questions differ */
+ }
+ return {adds,same};
+}
+function syncSheet(j){
+ const p=syncPlan(j);syncJ=j;
+ if(!p.adds.length){
+  openSheet(`<div class="shd"><h3>Already in sync</h3></div><p class="note" style="margin:-6px 0 18px">Nothing new in this file.${p.same?` ${p.same} keyword${p.same===1?'':'s'} you already have ${p.same===1?'was':'were'} left untouched.`:''}</p><button class="btn soft wide" data-act="close-sheet">Done</button>`);return;
+ }
+ const nq=p.adds.reduce((a,g)=>a+g.qs.length,0);
+ const row=(t,sm,pill,cls)=>`<div class="mrow"><div class="l">${esc(t)}<small>${esc(sm)}</small></div><span class="pill ${cls}">${pill}</span></div>`;
+ const rows=p.adds.map(g=>row(g.n.keyword,[g.n.paper,g.n.subject].filter(Boolean).join(' · ')||'New keyword',`New · ${g.qs.length} Q`,'green'));
+ openSheet(`<div class="shd"><h3>Import from sync file</h3></div><p class="note" style="margin:-6px 0 12px">${p.adds.length} new keyword${p.adds.length===1?'':'s'}, ${nq} new question${nq===1?'':'s'} in total.${p.same?` ${p.same} keyword${p.same===1?'':'s'} you already have will be skipped entirely.`:''} Your progress is not touched.</p><div style="max-height:38vh;overflow:auto;margin-bottom:16px">${rows.slice(0,60).join('')}${rows.length>60?`<p class="note">+ ${rows.length-60} more</p>`:''}</div><div class="sgrid" style="margin-top:0"><button class="btn dark wide" data-act="sync-go">Add to library</button><button class="btn soft wide" data-act="close-sheet">Cancel</button></div>`);
+}
+function syncApply(){
+ if(!syncJ)return;
+ const p=syncPlan(syncJ),now=Date.now(),ids=new Set(db.items.map(x=>x.id));let na=0,nq=0;
+ p.adds.forEach((g,i)=>{
+  let id=S(g.raw.id)||('k-'+slug(g.n.keyword));
+  if(ids.has(id)){const b=id;let c=2;while(ids.has(b+'-'+c))c++;id=b+'-'+c}
+  ids.add(id);
+  const qs=g.qs,f=qs[0];
+  db.items.push({...g.n,id,addedOn:now-i*1000,updatedOn:0,questions:qs,variants:qs.slice(1),question:f.question,options:f.options,correct:f.correct,explanation:f.explanation,source:f.source,type:f.type,year:f.year,questionNumber:f.questionNumber});
+  na++;nq+=qs.length;
+ });
+ syncJ=null;dirty();syncQueue();persist();closeSheet();render({keep:true});
+ toast(`Synced: ${na} new keyword${na===1?'':'s'}, ${nq} new question${nq===1?'':'s'}`);
+}
+async function shareSync(){
+ const json=JSON.stringify(syncObj(),null,2),name=`nitya-sync-${todayKey()}.json`;
+ try{
+  const f=new File([json],name,{type:'application/json'});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Nitya sync'});toast('Sync file shared');return}
+ }catch(e){if(e&&e.name==='AbortError')return}
+ try{const u=URL.createObjectURL(new Blob([json],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);toast('Sync file saved')}
+ catch(_){toast('Saving files isn’t available here. Use Copy sync data.')}
+}
 async function copyText(t){
  try{await navigator.clipboard.writeText(t);return true}catch(_){
   try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}catch(_){return false}}
@@ -1510,6 +1570,11 @@ $('#shell').addEventListener('click',e=>{
   case 'export':exportFile();break;
   case 'copy-backup':copyText(JSON.stringify(backupObj())).then(ok=>{if(ok){stamp();render({keep:true})}toast(ok?'Backup copied':'Couldn’t copy here. Use Save backup file.')});break;
   case 'import':$('#file').click();break;
+  case 'sync-export':shareSync();break;
+  case 'sync-copy':copyText(JSON.stringify(syncObj())).then(ok=>toast(ok?'Sync data copied':'Couldn’t copy here. Use Export sync file.'));break;
+  case 'sync-import':$('#file').click();break;
+  case 'sync-paste':navigator.clipboard.readText().then(t=>{let j;try{j=JSON.parse(t)}catch(_){}if(j&&Array.isArray(j.items))syncSheet(j);else toast('No sync data found on the clipboard.')}).catch(()=>toast('Couldn’t read the clipboard. Use Import sync file.'));break;
+  case 'sync-go':syncApply();break;
   case 'reset-progress':openSheet(`<div class="shd"><h3>Reset progress?</h3></div><p class="note" style="margin:-6px 0 18px">Streaks, history and the review schedule go back to zero. Your keywords and saved items stay.</p><div class="sgrid" style="margin-top:0"><button class="btn red wide" data-act="reset-go">Reset progress</button><button class="btn soft wide" data-act="close-sheet">Cancel</button></div>`);break;
   case 'reset-go':db.seen=new Set();db.read=new Set();db.srs={};db.qsrs={};db.daily={};db.flags.rec=null;db.resume='';persist();closeSheet();render({keep:true});toast('Progress reset');break;
  }
@@ -1537,7 +1602,8 @@ $('#file').addEventListener('change',e=>{
  const f=e.target.files&&e.target.files[0];if(!f)return;
  const r=new FileReader();
  r.onload=()=>{try{const j=JSON.parse(String(r.result));
-  if(Array.isArray(j.items)){const x=restoreBackup(j);render({keep:true});toast(`Restored: ${x.add} added, ${x.upd} updated`)}
+  if(j&&j.kind==='sync'){syncSheet(j)}
+  else if(Array.isArray(j.items)){const x=restoreBackup(j);render({keep:true});toast(`Restored: ${x.add} added, ${x.upd} updated`)}
   else{paste=String(r.result);addSeg='add';analyze();render({keep:true});toast('Loaded. Review the preview below.')}
  }catch(_){toast('That file couldn’t be read.')}};
  r.readAsText(f);e.target.value='';
