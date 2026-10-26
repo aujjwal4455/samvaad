@@ -831,7 +831,7 @@ function heatHTML(){
  const [ra,rb]=span(heatOff),[pa,pb]=span(heatOff-1);
  for(let d=new Date(ra);d<=rb;d.setDate(d.getDate()+1)){const c=new Date(d),k=dateKey(c),fut=c>T;days.push({d:c,k,n:fut?0:N(k),i:Math.round((T-c)/864e5),fut})}
  let prev=0;for(let d=new Date(pa);d<=pb;d.setDate(d.getDate()+1))prev+=N(dateKey(d));
- const earliest=Object.keys(db.daily).filter(k=>N(k)>0).sort()[0]||todayKey(),canPrev=dateKey(ra)>earliest,len=days.length;
+ const earliest=Object.keys(db.daily).filter(k=>N(k)>0).sort()[0]||todayKey(),lim=new Date(T.getFullYear()-5,T.getMonth(),T.getDate()),canPrev=ra>lim,len=days.length;
  const tot=days.reduce((a,x)=>a+x.n,0),act=days.filter(x=>x.n>0).length,hit=days.filter(x=>x.n>=g).length,bd=days.reduce((a,x)=>x.n>a.n?x:a,{n:0,k:''});
  let bs=0,run=0;for(const x of days){run=x.n>=g?run+1:0;bs=Math.max(bs,run)}
  const pad=days[0].d.getDay(),fmt=(d,o)=>d.toLocaleDateString(undefined,o);
