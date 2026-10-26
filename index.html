@@ -67,7 +67,7 @@ svg{display:block;flex:none}
 #tabs button[aria-current="page"]{color:var(--ink)}
 #tabs button[aria-current="page"] svg{color:var(--orange);stroke-width:2.1}
 #tabs .ti{position:relative;display:block}
-#tabs .bdg{position:absolute;top:-4px;right:-10px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:var(--orange);color:#fff;font:700 10px/16px var(--font);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--bg)}
+#tabs .bdg{position:absolute;top:-6px;right:-14px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:var(--orange);color:#fff;font:700 10px/16px var(--font);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--bg)}
 
 /* headings */
 .hdr{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:6px 0 20px}
@@ -166,6 +166,53 @@ button.row:active{background:var(--fill)}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);padding:18px 8px;text-align:center}
 .stats b{display:block;font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
 .stats span{color:var(--ink2);font-size:13px}
+.rec3{display:grid;grid-template-columns:repeat(3,1fr);padding:18px 8px 14px;text-align:center}
+.rec3 b{display:block;font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
+.rec3 span{color:var(--ink2);font-size:13px;display:block;margin-top:2px}
+.rec3 .star{color:var(--orange);display:inline-flex;vertical-align:-3px;margin-right:3px}
+.nudge{margin:0 16px 14px;padding:12px 14px;border-radius:14px;background:var(--orange-soft);color:var(--orange-ink);font-size:15px;font-weight:600;line-height:1.35}
+.nudge.win{background:var(--green-soft);color:var(--green)}
+.mrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;border-top:.5px solid var(--line)}
+.mrow .l{font-size:16px}.mrow .l small{display:block;color:var(--ink3);font-size:13px}
+.mrow .v{flex:none;white-space:nowrap;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-align:right}
+.delta{display:block;font-size:12.5px;font-weight:600;letter-spacing:0}
+.delta.up{color:var(--green)}.delta.dn{color:var(--coral)}.delta.eq{color:var(--ink3)}
+.hist{padding:14px 16px 16px;border-top:.5px solid var(--line)}
+.hist .cap{display:flex;justify-content:space-between;color:var(--ink3);font-size:12.5px;margin-bottom:8px}
+.hbars{position:relative;display:flex;align-items:flex-end;gap:4px;height:84px}
+.hbars i{flex:1;min-width:0;border-radius:4px 4px 2px 2px;background:var(--fill);min-height:3px}
+.hbars i.hit{background:var(--orange)}.hbars i.top{background:var(--green)}.hbars i.td{outline:2px solid var(--ink3);outline-offset:1px}
+.hbars .goalln{position:absolute;left:0;right:0;border-top:1.5px dashed var(--ink3);opacity:.55;pointer-events:none}
+.heat{padding:14px 16px 16px}
+.heat .seg{margin-bottom:14px}
+.hgrid{display:grid;gap:3px}
+.hgrid.y{grid-template-rows:repeat(7,11px);grid-auto-flow:column;gap:2px}
+.hgrid.y .hc{aspect-ratio:auto;width:11px;height:11px}
+.hscroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:3px 2px}
+.hscroll::-webkit-scrollbar{display:none}
+.hmon{height:14px}
+.hgrid.m{grid-template-columns:repeat(7,1fr)}
+.hgrid.w{grid-template-columns:repeat(7,1fr);gap:6px}
+.hc{border:0;padding:0;border-radius:3px;background:var(--fill);aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink);font-size:12px;font-weight:600;line-height:1.15;min-width:0}
+.hgrid.y .hc{border-radius:2px}
+.hgrid.m .hc,.hgrid.w .hc{border-radius:8px}
+.hgrid.w .hc{aspect-ratio:auto;height:64px;font-size:19px}
+.hc small{font-size:10.5px;font-weight:500;opacity:.75}
+.hc.h1{background:color-mix(in srgb,var(--orange) 28%,transparent)}
+.hc.h2{background:color-mix(in srgb,var(--orange) 50%,transparent)}
+.hc.h3{background:color-mix(in srgb,var(--orange) 75%,transparent)}
+.hc.h4{background:var(--orange);color:#fff}
+.hc.h3{color:var(--ink)}
+.hc.td{outline:2px solid var(--ink);outline-offset:1px}
+.hc.sel{outline:2px solid var(--blue,#2F6FDE);outline-offset:1px}
+.hc.e{background:none;pointer-events:none}
+.hmon{display:grid;grid-auto-flow:column;gap:2px;margin-bottom:5px;font-size:10px;color:var(--ink3);height:12px}
+.hmon span{white-space:nowrap;overflow:visible}
+.hleg{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:10px;color:var(--ink3);font-size:12px}
+.hleg i{width:11px;height:11px;border-radius:3px;background:var(--fill)}
+.hleg i.h1{background:color-mix(in srgb,var(--orange) 28%,transparent)}.hleg i.h2{background:color-mix(in srgb,var(--orange) 50%,transparent)}.hleg i.h3{background:color-mix(in srgb,var(--orange) 75%,transparent)}.hleg i.h4{background:var(--orange)}
+.hcap{min-height:20px;margin-top:10px;font-size:14px;color:var(--ink2)}
+.hcap b{color:var(--ink)}
 .covtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .pd{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--pc);margin-right:9px}
 .bar{display:flex;height:6px;border-radius:3px;background:var(--fill);overflow:hidden;margin-top:10px}
@@ -476,7 +523,7 @@ function sampleData(){const now=Date.now();return [
 {keyword:'El Niño',paper:'GS 1',subject:'Geography',topic:'Climate Systems',points:['El Niño is the warm phase of the El Niño–Southern Oscillation (ENSO) pattern in the tropical Pacific.','It involves unusually warm sea-surface temperatures in the central and eastern equatorial Pacific.','It can alter atmospheric circulation and shift rainfall patterns in different regions.','Its effects vary by event and season; it does not produce identical weather outcomes everywhere.','El Niño can influence the Indian monsoon, but it is one of several factors affecting seasonal rainfall.'],question:'El Niño is most directly associated with unusual warming in which region?',options:['North Atlantic Ocean','Central and eastern equatorial Pacific Ocean','Southern Indian Ocean near Antarctica','Arctic Ocean'],correct:'B',explanation:'El Niño is characterised by warmer-than-usual sea-surface temperatures in the central and eastern equatorial Pacific as part of ENSO.'}
 ].map((x,i)=>({...x,id:'k-'+slug(x.keyword),addedOn:now-(4-i)*86400000,updatedOn:0}))}
 
-function legacyDaily(d){const out={};if(d&&typeof d==='object')for(const k of Object.keys(d)){const v=d[k];if(v&&Array.isArray(v.ids))out[k]={ids:v.ids.map(String)};else if(v&&Number(v.count)>0)out[k]={ids:Array.from({length:Number(v.count)},(_,i)=>'legacy-'+i)}}return out}
+function legacyDaily(d){const out={};if(d&&typeof d==='object')for(const k of Object.keys(d)){const v=d[k];if(v&&Array.isArray(v.ids))out[k]={ids:v.ids.map(String),r:Math.max(0,Number(v.r)||0),w:Math.max(0,Number(v.w)||0)};else if(v&&Number(v.count)>0)out[k]={ids:Array.from({length:Number(v.count)},(_,i)=>'legacy-'+i)}}return out}
 function cleanSrs(o){const out={};if(o&&typeof o==='object')for(const k of Object.keys(o)){const s=o[k];if(!s||typeof s!=='object')continue;out[k]={b:Math.max(0,Math.min(5,Number(s.b)||0)),due:/^\d{4}-\d{2}-\d{2}$/.test(S(s.due))?S(s.due):todayKey(),r:Math.max(0,Number(s.r)||0),w:Math.max(0,Number(s.w)||0),l:Number(s.l)||0,k:s.k===0||s.k===1?s.k:undefined,p:S(s.p)}}return out}
 function finishItem(it,i){const n=normalize(it);delete n._dropped;return {...n,id:S(it.id)||('k-'+slug(n.keyword)),addedOn:Number(it.addedOn)||Date.now()-i*1000}}
 
@@ -484,7 +531,7 @@ const hadLS=!!readJSON(KEY,null);let mirrorOK=hadLS,snap='';
 const IDB={open(){return new Promise((r,j)=>{const q=indexedDB.open('nitya',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)})},async set(v){try{const d=await this.open();d.transaction('kv','readwrite').objectStore('kv').put(v,'db')}catch(_){}},async get(){try{const d=await this.open();return await new Promise(r=>{const q=d.transaction('kv').objectStore('kv').get('db');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)})}catch(_){return null}}};
 let UC=null,UM=null,UK=null;
 function dirty(){UC=null;UM=null;UK=null}
-const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},qsrs:{},daily:{},theme:null,goal:3,size:10,resume:'',lastBackup:0,flags:{}};
+const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},qsrs:{},daily:{},theme:null,goal:5,size:10,resume:'',lastBackup:0,flags:{}};
 (function load(){
  let st=readJSON(KEY,null);
  if(!st||typeof st!=='object'){
@@ -500,11 +547,12 @@ const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},qsrs:{},
  db.qsrs=cleanSrs(st.qsrs);
  db.daily=legacyDaily(st.daily);
  db.theme=st.theme||document.documentElement.dataset.theme;
- db.goal=GOALS.includes(Number(st.goal))?Number(st.goal):3;
+ db.goal=GOALS.includes(Number(st.goal))?Number(st.goal):5;
  db.size=SIZES.includes(Number(st.size))?Number(st.size):10;
  db.resume=ids.has(st.resume)?st.resume:'';
  db.lastBackup=Number(st.lastBackup)||0;
  db.flags=st.flags&&typeof st.flags==='object'?st.flags:{};
+ if(!db.flags.g5){db.flags.g5=1;if(db.goal===3)db.goal=5} /* default daily goal moved from 3 to 5 */
  /* older progress: questions already answered start in the review cycle */
  for(const id of db.seen)if(ids.has(id)&&!db.srs[id])db.srs[id]={b:1,due:addDays(1),r:0,w:0,l:0};
  /* keywords that only had one question keep their progress at question level */
@@ -534,7 +582,7 @@ const recent=(a,b)=>(b.updatedOn||b.addedOn)-(a.updatedOn||a.addedOn);
 const buzz=ms=>{if(!reduce&&navigator.vibrate)try{navigator.vibrate(ms)}catch(_){}};
 const todayIds=()=>db.daily[todayKey()]?.ids||[];
 const todayCount=()=>todayIds().length;
-function markAnswered(id){const k=todayKey();const d=db.daily[k]||(db.daily[k]={ids:[]});if(!d.ids.includes(id))d.ids.push(id)}
+function markAnswered(id,ok){const k=todayKey();const d=db.daily[k]||(db.daily[k]={ids:[]});if(!d.ids.includes(id))d.ids.push(id);if(ok===true)d.r=(d.r||0)+1;else if(ok===false)d.w=(d.w||0)+1}
 function streak(){let s=0;for(let i=0;i<400;i++){const d=new Date();d.setDate(d.getDate()-i);const n=(db.daily[dateKey(d)]?.ids||[]).length;if(n>=db.goal)s++;else if(i===0)continue;else break}return s}
 
 /* spaced repetition: boxes 0-5, review gaps of 0,1,3,7,14,30 days */
@@ -619,6 +667,7 @@ function ago(ts){if(!ts)return 'never';const d=Math.floor((Date.now()-ts)/864e5)
 const metaOf=id=>{const m=db.flags.meta||(db.flags.meta={});return m[id]||(m[id]={})};
 const dn=k=>Math.round(Date.parse(k+'T00:00:00')/864e5);
 const hashN=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return h};
+const readSince=(id,date)=>{const m=(db.flags.meta||{})[id]||{};return m.rd?m.rd>=date:db.read.has(id)};
 const lastTouch=x=>{const s=db.srs[x.id],m=(db.flags.meta||{})[x.id]||{};return Math.max(x.addedOn||0,m.seen||0,s?s.l:0)};
 function prio(x){
  const t=todayKey(),s=db.srs[x.id],m=(db.flags.meta||{})[x.id]||{};
@@ -628,7 +677,7 @@ function prio(x){
  else{if(s.k===0)p+=40+Math.min(30,10*Math.max(0,s.w-1));const od=dn(t)-dn(s.due);if(od>0)p+=Math.min(50,5*od);else if(od===0)p+=3}
  p+=Math.min(30,Math.floor((Date.now()-lastTouch(x))/864e5));
  if((m.skip||0)>=3)p+=15;
- if((db.flags.kh||[]).some(h=>h.id===x.id&&h.date<t&&dn(t)-dn(h.date)<=7&&!kwIn(db.daily[h.date]?.ids||[],x.id)))p+=20;
+ if((db.flags.kh||[]).some(h=>h.id===x.id&&h.date<t&&dn(t)-dn(h.date)<=7&&!kwIn(db.daily[h.date]?.ids||[],x.id)&&!readSince(x.id,h.date)))p+=20;
  if(!x.evergreen&&Date.now()-(x.addedOn||Date.now())>540*864e5)p*=.5;
  return p+(hashN(x.id+t)%100)/100;
 }
@@ -723,9 +772,10 @@ const analyze=()=>{const names=new Set();analysis=parseInput(paste).map(it=>({it
 
 /* ---------- views: home ---------- */
 function tabsHTML(){
- const due=dueUnits().length;
+ if(syncQueue())persistSoon();
+ const due=dueUnits().length,qc=(db.flags.queue||[]).length;
  const T=[['home','Home'],['learn','Learn'],['practice','Practice'],['add','Add']];
- return T.map(([k,l])=>`<button data-tab="${k}" ${tab===k&&!session?'aria-current="page"':''} aria-label="${l}${k==='practice'&&due?`, ${due} due`:''}"><span class="ti">${ic(k)}${k==='practice'&&due?`<i class="bdg">${due>9?'9+':due}</i>`:''}</span><span>${l}</span></button>`).join('');
+ return T.map(([k,l])=>{const n=k==='practice'?due:k==='add'?qc:0;return `<button data-tab="${k}" ${tab===k&&!session?'aria-current="page"':''} aria-label="${l}${n?(k==='add'?`, ${n} keyword${n===1?'':'s'} waiting`:`, ${n} due`):''}"><span class="ti">${ic(k)}${n?`<i class="bdg">${n>9?'9+':n}</i>`:''}</span><span>${l}</span></button>`}).join('');
 }
 function related(k){const r=ranked(db.items.filter(x=>x.topic===k.topic&&x.id!==k.id)).slice(0,2);return r.length?`<h2 class="sec sm">Same topic</h2><div class="group">${r.map(x=>`<button class="row" data-act="open-learn" data-id="${esc(x.id)}"><div class="grow"><div class="t">${esc(x.keyword)}</div><div class="s">${esc(why(x))}</div></div>${ic('chr',18)}</button>`).join('')}</div>`:''}
 function recap(){
@@ -742,12 +792,79 @@ function kotd(){
  let best=null,bs=-1e18;
  for(const x of db.items){let sc=prio(x);if(sc<-1e8)continue;
   if(y&&y.id===x.id&&(yAns||(yy&&yy.id===x.id)))sc-=30;
+  if((db.flags.kh||[]).some(h=>h.id===x.id&&h.date<t&&dn(t)-dn(h.date)<=7&&readSince(x.id,h.date)))sc-=1e6; /* read since it was the keyword: show something new */
   if(last.some(h=>h.topic===x.topic&&h.id!==x.id))sc-=15;
   if(sc>bs){bs=sc;best=x}}
- if(!best)best=[...db.items].sort((a,b)=>lastTouch(a)-lastTouch(b))[0];
+ if(!best||bs<-5e5)best=[...db.items].filter(x=>!(db.flags.kh||[]).some(h=>h.id===x.id&&h.date<t&&readSince(x.id,h.date))).sort((a,b)=>lastTouch(a)-lastTouch(b))[0]||best||[...db.items].sort((a,b)=>lastTouch(a)-lastTouch(b))[0];
  db.flags.kotd={date:t,id:best.id,why:why(best)};
  db.flags.kh=[...(db.flags.kh||[]).filter(h=>h.date!==t),{date:t,id:best.id,topic:best.topic}].slice(-14);
  persistSoon();return best;
+}
+function statsData(){
+ const g=db.goal,keys=Object.keys(db.daily).sort(),N=k=>(db.daily[k]?.ids||[]).length;
+ let best=0,run=0,prev=null;
+ for(const k of keys){if(N(k)>=g){run=prev&&dn(k)-dn(prev)===1?run+1:1;prev=k;best=Math.max(best,run)}}
+ let bd=0,bdd='';for(const k of keys){const n=N(k);if(n>bd){bd=n;bdd=k}}
+ const sum=(from,len)=>{let t=0;for(let i=from;i<from+len;i++){const d=new Date();d.setDate(d.getDate()-i);t+=N(dateKey(d))}return t};
+ let bw=0;for(const k of keys){let t=0;for(let i=0;i<7;i++){const d=new Date(k+'T00:00:00');d.setDate(d.getDate()-i);t+=N(dateKey(d))}bw=Math.max(bw,t)}
+ const w=sum(0,7),pw=sum(7,7),m=sum(0,30),pm=sum(30,30);
+ let act=0,r7=0,w7=0;for(let i=0;i<30;i++){const d=new Date();d.setDate(d.getDate()-i);const e=db.daily[dateKey(d)];if(e&&e.ids.length)act++;if(i<7&&e){r7+=e.r||0;w7+=e.w||0}}
+ const sk=streak(),old=db.flags.rec||{},rec={s:Math.max(old.s||0,best,sk),d:Math.max(old.d||0,bd),dd:bd>=(old.d||0)?bdd:old.dd,w:Math.max(old.w||0,bw)};
+ if(rec.s!==old.s||rec.d!==old.d||rec.w!==old.w||rec.dd!==old.dd){db.flags.rec=rec;persistSoon()}
+ const hist=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);hist.push({n:N(dateKey(d)),l:d.toLocaleDateString(undefined,{weekday:'short'}),today:i===0})}
+ return {sk,rec,w,pw,m,pm,act,acc:r7+w7>=5?Math.round(r7/(r7+w7)*100):null,hist,today:N(todayKey()),g}
+}
+const dlt=(a,b,unit)=>{const d=a-b;return `<span class="delta ${d>0?'up':d<0?'dn':'eq'}">${d>0?'▲ +'+d:d<0?'▼ '+d:'same as'} ${unit}</span>`};
+let heatR='month',heatSel='',heatX=null;
+const hlv=(n,g)=>n<=0?0:n>=2*g?4:n>=g?3:n>=Math.ceil(g/2)?2:1;
+function heatHTML(){
+ const g=db.goal,N=k=>(db.daily[k]?.ids||[]).length,len=heatR==='week'?7:heatR==='month'?30:365,days=[];
+ for(let i=len-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dateKey(d);days.push({d,k,n:N(k),i})}
+ let prev=0;for(let i=len;i<2*len;i++){const d=new Date();d.setDate(d.getDate()-i);prev+=N(dateKey(d))}
+ const tot=days.reduce((a,x)=>a+x.n,0),act=days.filter(x=>x.n>0).length,hit=days.filter(x=>x.n>=g).length,bd=days.reduce((a,x)=>x.n>a.n?x:a,{n:0,k:''});
+ let bs=0,run=0;for(const x of days){run=x.n>=g?run+1:0;bs=Math.max(bs,run)}
+ const pad=days[0].d.getDay(),fmt=(d,o)=>d.toLocaleDateString(undefined,o);
+ const cell=x=>{const l=hlv(x.n,g),cls=`hc h${l} ${x.i===0?'td':''} ${heatSel===x.k?'sel':''}`,lab=`${fmt(x.d,{weekday:'short',day:'numeric',month:'short'})}: ${x.n} question${x.n===1?'':'s'}`;
+  const inner=heatR==='week'?`<small>${esc(fmt(x.d,{weekday:'short'}))}</small>${x.n}`:heatR==='month'?`<small>${x.d.getDate()}</small>`:'';
+  return `<button class="${cls}" data-act="heat-cell" data-k="${x.k}" aria-label="${esc(lab)}">${inner}</button>`};
+ let grid;
+ if(heatR==='year'){const cols=Math.ceil((pad+len)/7),labs=Array(cols).fill('');let lastM=-1;
+  for(let c=0;c<cols;c++){const x=days[Math.max(0,c*7-pad)];if(x){const m=x.d.getMonth();if(m!==lastM&&(c>0||x.d.getDate()<=20)){if(!(c>cols-3&&labs.slice(-2).some(Boolean)))labs[c]=fmt(x.d,{month:'short'})}lastM=m}}
+  grid=`<div class="hscroll" tabindex="0" aria-label="Year of activity, scrolls sideways"><div style="width:${cols*13}px"><div class="hmon" style="grid-template-columns:repeat(${cols},11px)">${labs.map(l=>`<span>${esc(l)}</span>`).join('')}</div><div class="hgrid y" style="grid-template-columns:repeat(${cols},11px)">${Array(pad).fill('<span class="hc e"></span>').join('')}${days.map(cell).join('')}</div></div></div>`}
+ else if(heatR==='month')grid=`<div class="hgrid m">${Array(pad).fill('<span class="hc e"></span>').join('')}${days.map(cell).join('')}</div>`;
+ else grid=`<div class="hgrid w">${days.map(cell).join('')}</div>`;
+ const sel=days.find(x=>x.k===heatSel),cap=sel?`<b>${esc(fmt(sel.d,{weekday:'long',day:'numeric',month:'long'}))}</b> · ${sel.n} question${sel.n===1?'':'s'}${sel.n>=g?' · goal met':sel.n?` · ${g-sel.n} short of goal`:''}`:'Tap a day for details.';
+ const d=tot-prev,unit=heatR==='week'?'previous week':heatR==='month'?'previous 30 days':'previous year',nm=heatR==='week'?'7 days':heatR==='month'?'30 days':'year';
+ return `<h2 class="sec">Activity</h2><div class="group"><div class="heat">
+ <div class="seg" role="group" aria-label="Range">${[['week','Week'],['month','Month'],['year','Year']].map(([k,l])=>`<button data-act="heat-range" data-v="${k}" aria-pressed="${heatR===k}">${l}</button>`).join('')}</div>
+ ${grid}
+ <div class="hcap" aria-live="polite">${cap}</div>
+ <div class="hleg">Less<i></i><i class="h1"></i><i class="h2"></i><i class="h3"></i><i class="h4"></i>More</div>
+ </div></div>
+ <div class="group" style="margin-top:12px"><div class="rec3"><div><b>${tot}</b><span>Solved</span></div><div><b>${act}</b><span>Active days</span></div><div><b>${hit}</b><span>Goal days</span></div></div>
+ <div class="mrow"><div class="l">Best day<small>${bd.n?esc(fmt(new Date(bd.k+'T00:00:00'),{weekday:'short',day:'numeric',month:'short'})):'No activity yet'}</small></div><div class="v">${bd.n}</div></div>
+ <div class="mrow"><div class="l">Longest streak<small>Days in a row at ${g}+ questions</small></div><div class="v">${bs}</div></div>
+ <div class="mrow"><div class="l">Average per active day<small>Past ${nm}</small></div><div class="v">${act?(tot/act).toFixed(1):'–'}</div></div>
+ <div class="mrow"><div class="l">Compared with ${unit}<small>${prev} solved then</small></div><div class="v">${d>0?'+'+d:d<0?String(d):'0'}<span class="delta ${d>0?'up':d<0?'dn':'eq'}">${d>0?'▲ ahead':d<0?'▼ behind':'level'}</span></div></div>
+ </div>`;
+}
+function statsHTML(){
+ const z=statsData(),{rec}=z;let nudge='',win=false;
+ if(z.sk>0&&z.sk>=rec.s){nudge=z.sk===rec.s&&rec.s===1?'Your streak has started. Come back tomorrow to make it two.':`You’re on your longest streak ever, ${z.sk} day${z.sk===1?'':'s'}. Keep it alive.`;win=true}
+ else if(z.today>0&&z.today>=rec.d){nudge=`New personal best today: ${z.today} questions!`;win=true}
+ else if(z.sk>0&&z.sk<rec.s)nudge=`${rec.s+1-z.sk} more day${rec.s+1-z.sk===1?'':'s'} to beat your best streak of ${rec.s}.`;
+ else if(rec.s>0)nudge=`Your best streak is ${rec.s} day${rec.s===1?'':'s'}. Reach your daily goal today to start a new one.`;
+ else nudge=`Answer ${z.g} question${z.g===1?'':'s'} today to start your first streak.`;
+ if(!win&&rec.d>0&&z.today<rec.d&&z.today>0&&rec.d-z.today<=10)nudge+=` ${rec.d+1-z.today} more today beats your best day (${rec.d}).`;
+ else if(!win&&z.w>0&&rec.w>z.w&&rec.w-z.w<=15)nudge+=` ${rec.w+1-z.w} more this week beats your record week (${rec.w}).`;
+ const mx=Math.max(1,rec.d,z.g,...z.hist.map(h=>h.n)),goalPct=z.g/mx*100;
+ return `<h2 class="sec">Your stats</h2><div class="group">
+ <div><div class="rec3"><div><b>${ic('flame',20,true).replace('<svg','<svg style="color:var(--orange);display:inline;vertical-align:-3px;margin-right:2px"')}${z.sk}</b><span>Current streak</span></div><div><b>${rec.s}</b><span>Best streak</span></div><div><b>${rec.d}</b><span>Best day</span></div></div>
+ <div class="nudge ${win?'win':''}">${esc(nudge)}</div></div>
+ <div class="mrow"><div class="l">Last 7 days<small>${rec.w>0?`Record week: ${rec.w}`:'Questions solved'}</small></div><div class="v">${z.w}${dlt(z.w,z.pw,'vs last week')}</div></div>
+ <div class="mrow"><div class="l">Last 30 days<small>${z.act} active day${z.act===1?'':'s'} of 30</small></div><div class="v">${z.m}${z.pm>0||z.m>0?dlt(z.m,z.pm,'vs prior 30'):''}</div></div>
+ ${z.acc!=null?`<div class="mrow"><div class="l">7-day accuracy<small>Based on this week’s answers</small></div><div class="v">${z.acc}%</div></div>`:''}
+ </div>`;
 }
 function viewHome(){
  const n=todayCount(),goal=db.goal,pct=Math.min(1,n/goal),C=2*Math.PI*42,sk=streak(),done=n>=goal,rem=Math.max(0,goal-n);
@@ -775,8 +892,10 @@ function viewHome(){
  ${recap()}
  ${!storageOK?`<p class="note">This viewer isn’t saving data between sessions. Use Add, then Backup to keep a copy.</p>`:''}
  ${due?`<div class="group" style="margin-top:14px"><div class="row"><span class="chipic t-due">${ic('refresh',20)}</span><div class="grow"><div class="t">${due} due for revision</div><div class="s">Revise before you forget</div></div><button class="btn dark xs" data-act="mode" data-m="due">Revise</button></div></div>`:''}
+ ${(db.flags.queue||[]).length?`<div class="group" style="margin-top:14px"><div class="row"><span class="chipic t-due">${ic('clip',20)}</span><div class="grow"><div class="t">${(db.flags.queue||[]).length} keyword${(db.flags.queue||[]).length===1?'':'s'} waiting</div><div class="s">Generate their details and add them</div></div><button class="btn dark xs" data-act="open-queue">Open</button></div></div>`:''}
  ${k?`<h2 class="sec">Keyword of the day</h2><button class="kotd ${paperCls(k.paper)}" data-act="open-learn" data-id="${esc(k.id)}"><span class="tag">${esc(k.paper)}</span><h3>${esc(k.keyword)}</h3><p>${esc(k.points[0]||'')}</p><div class="km"><span>${esc((db.flags.kotd&&db.flags.kotd.why)||why(k))} · ${esc(k.subject)}</span><span class="go">Read${ic('chr',16)}</span></div></button>${related(k)}`:''}
  ${weak.length?`<h2 class="sec">Needs attention</h2><div class="group">${weak.map((w,i)=>`<button class="row" data-act="weak-practice" data-i="${i}"><span class="chipic t-weak">${ic('target',20)}</span><div class="grow"><div class="t">${esc(w.topic)}</div><div class="s">${esc(w.subject)}, ${w.r+w.w} attempts</div></div><span class="pill red">${Math.round(w.r/(w.r+w.w)*100)}%</span></button>`).join('')}</div>`:''}
+ ${db.items.length?statsHTML()+heatHTML():''}
  ${db.items.length?`<h2 class="sec">Progress</h2><div class="group"><div class="stats"><div><b>${tot.answered}</b><span>Answered</span></div><div><b>${tot.acc==null?'–':tot.acc+'%'}</b><span>Accuracy</span></div><div><b>${tot.mastered}</b><span>Mastered</span></div></div>
  ${cov.map(c=>`<button class="row cov ${paperCls(c.p)}" data-act="paper-learn" data-v="${esc(c.p)}"><div class="grow"><div class="covtop"><span class="t"><i class="pd"></i>${esc(c.p)}</span><span class="s">${c.m} of ${c.t} questions mastered</span></div><div class="bar"><i class="m" style="width:${c.m/c.t*100}%"></i><i class="l" style="width:${c.l/c.t*100}%"></i></div></div></button>`).join('')}</div>`:''}
  ${nudge?`<div class="group" style="margin-top:22px"><button class="row" data-act="backup-now"><span class="chipic t-shield">${ic('shield',20)}</span><div class="grow"><div class="t">Save a backup now</div><div class="s">Last backup: ${ago(db.lastBackup)}</div></div>${ic('chr',18)}</button></div>`:''}
@@ -841,7 +960,7 @@ function setupFeed(){
    if(bar)bar.style.width=((Number(c.dataset.i)+1)/n*100)+'%';
    clearTimeout(dwellT);
    dwellT=setTimeout(()=>{
-    if(!db.read.has(id)&&!c.querySelector('.pts.hide')){db.read.add(id);const r=c.querySelector('.rd');if(r)r.hidden=false}
+    if(!c.querySelector('.pts.hide')){metaOf(id).rd=todayKey();if(!db.read.has(id)){db.read.add(id);const r=c.querySelector('.rd');if(r)r.hidden=false}}
     db.resume=id;persistSoon();
    },Math.max(4000,1500*c.querySelectorAll('.pts li').length));
   }
@@ -1008,11 +1127,77 @@ function itemSheetHTML(id){
   return `<button class="row qrow" data-act="quiz-one" data-id="${esc(u.uid)}" data-kid="${esc(id)}"><i class="sdot ${qStat(u)}"></i><div class="grow"><div class="qt">${esc(q.question.split('\n')[0])}</div><div class="s one">${esc(tag)}, ${esc(tr)}</div></div>${ic('chr',18)}</button>`}).join('')}</div>
  <button class="btn quiet danger wide" style="margin-top:16px" data-act="item-del" data-id="${esc(id)}">${ic('trash',18)}Delete keyword</button>`;
 }
+/* ---------- keyword queue: newspaper keywords waiting for details ---------- */
+let qText='',qLast=null;
+const QSTOP=new Set(['of','the','and','for','in','on','to','a','an']);
+const qn=s=>S(s).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,' and ').replace(/\([^)]*\)/g,' ').replace(/[^a-z0-9]+/g,' ').trim().replace(/^the /,'');
+const qParen=s=>{const m=S(s).match(/\(([^)]+)\)/);return m?qn(m[1]).replace(/ /g,''):''};
+const qStem=s=>qn(s).split(' ').map(w=>w.length>3&&w.endsWith('s')&&!w.endsWith('ss')?w.slice(0,-1):w).join(' ');
+const qAcr=s=>{const w=qn(s).split(' ').filter(x=>x&&!QSTOP.has(x));return w.length>=2?w.map(x=>x[0]).join(''):''};
+function lev(a,b){const m=a.length,n=b.length;if(Math.abs(m-n)>2)return 9;let p=Array.from({length:n+1},(_,j)=>j);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+function qSim(a,b){
+ const na=qn(a),nb=qn(b);if(!na||!nb)return '';
+ const sa=qStem(a),sb=qStem(b);if(sa===sb)return 'Same words, different form';
+ const ja=na.replace(/ /g,''),jb=nb.replace(/ /g,''),pa=qParen(a),pb=qParen(b),ca=qAcr(a),cb=qAcr(b);
+ if((pa&&(pa===jb||pa===cb))||(pb&&(pb===ja||pb===ca))||(ca&&ca===jb)||(cb&&cb===ja))return 'Looks like an abbreviation';
+ const sh=na.length<=nb.length?na:nb,lg=na.length<=nb.length?nb:na;
+ if(sh.length>=3&&(' '+lg+' ').includes(' '+sh+' '))return 'One contains the other';
+ const da=(na.match(/\d+/g)||[]).join(','),dbb=(nb.match(/\d+/g)||[]).join(',');
+ if(da&&dbb&&da!==dbb)return ''; /* different numbers (Article 370 vs 371) are different keywords */
+ const ta=new Set(sa.split(' ')),tb=new Set(sb.split(' '));let it=0;for(const t of ta)if(tb.has(t))it++;
+ if(ta.size>=2&&tb.size>=2&&it/(ta.size+tb.size-it)>=.6)return 'Many shared words';
+ const ml=Math.min(na.length,nb.length);
+ if(ml>=6&&lev(na,nb)<=(ml>=12?2:1))return 'Spelled almost the same';
+ return '';
+}
+function qParse(t){
+ const multi=/\n/.test(t),parts=t.split(multi?/[\n;•|]+/:/[,;•|]+/);
+ return parts.map(x=>x.replace(/^\s*(?:[-*•–—]|\d+\s*[.)])\s*/,'').replace(/\s+/g,' ').replace(/[\s,.;:]+$/,'').trim()).filter(x=>x&&x.length<=90);
+}
+function qClassify(list){
+ const lib=db.items.map(x=>({k:x.keyword,id:x.id,n:qn(x.keyword)})),q=db.flags.queue||(db.flags.queue=[]),seen=new Set(),res={n:list.length,lib:[],dup:[],inq:[],add:[],rev:[]};
+ for(const raw of list){
+  const n=qn(raw);if(!n)continue;
+  if(seen.has(n)){res.dup.push(raw);continue}seen.add(n);
+  const L=lib.find(x=>x.n===n);if(L){res.lib.push({k:raw,id:L.id,name:L.k});continue}
+  if(q.some(e=>qn(e.k)===n)){res.inq.push(raw);continue}
+  let m=null;
+  for(const x of lib){const r=qSim(raw,x.k);if(r){m={m:x.k,mt:'lib',mid:x.id,r};break}}
+  if(!m)for(const e of q){const r=qSim(raw,e.k);if(r){m={m:e.k,mt:'q',r};break}}
+  const item={k:raw,d:todayKey()};if(m){Object.assign(item,m);res.rev.push(item)}else res.add.push(item);
+  q.push(item);
+ }
+ return res;
+}
+function syncQueue(){
+ const q=db.flags.queue;if(!Array.isArray(q)||!q.length)return false;
+ const have=new Set(db.items.map(x=>qn(x.keyword))),nq=q.filter(e=>!have.has(qn(e.k)));let ch=nq.length!==q.length;
+ for(const e of nq)if(e.mt==='lib'&&!byId(e.mid)){delete e.m;delete e.mt;delete e.mid;delete e.r;ch=true}
+ if(ch)db.flags.queue=nq;return ch;
+}
+const qAge=e=>{const d=dn(todayKey())-dn(e.d||todayKey());return d<=0?'Added today':d===1?'Waiting 1 day':`Waiting ${d} days`};
+function queueHTML(){
+ syncQueue();
+ const q=db.flags.queue||[],all=q.map((e,i)=>({e,i})),ready=all.filter(o=>!o.e.m),rev=all.filter(o=>o.e.m),fresh=ready.filter(o=>!o.e.c);
+ const nb=Math.min(10,fresh.length||ready.length),again=!fresh.length&&ready.length>0;
+ let h=`<p class="lead">Paste the keywords from today’s paper. Ones already in your library are dropped, and the rest wait here until you add their details.</p>
+ <textarea id="qin" class="ta" style="min-height:140px" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Paste newspaper keywords" placeholder="One keyword per line, or separated by commas">${esc(qText)}</textarea>
+ <div class="btns"><button class="btn dark sm" data-act="q-add">Check and add</button><button class="btn soft sm" data-act="q-clip">${ic('clip',18)}Paste</button><button class="btn quiet sm" data-act="q-clear-text">Clear</button></div>`;
+ if(qLast){const r=qLast;h+=`<h2 class="sec sm">Last check</h2><div class="group"><div class="row"><div class="grow"><div class="t">${r.n} pasted</div><div class="s">${[r.add.length?r.add.length+' new':'',r.lib.length?r.lib.length+' already in library':'',r.rev.length?r.rev.length+' to review':'',(r.dup.length+r.inq.length)?(r.dup.length+r.inq.length)+' repeated':''].filter(Boolean).join(' · ')||'Nothing to add'}</div></div><button class="btn quiet xs" data-act="q-last-close">Hide</button></div>
+ ${r.lib.map(x=>`<button class="row" data-act="open-learn" data-id="${esc(x.id)}"><div class="grow"><div class="t">${esc(x.k)}</div><div class="s">Already in library${qn(x.k)===qn(x.name)&&x.k===x.name?'':' as '+esc(x.name)}</div></div><span class="pill green">Have it</span></button>`).join('')}</div>`}
+ if(rev.length)h+=`<h2 class="sec sm">Needs your call</h2><p class="note" style="margin:-6px 0 10px">These look similar to something you already have. They stay out of the copy list until you decide.</p><div class="group">${rev.map(({e,i})=>`<div class="row" style="align-items:flex-start;flex-direction:column;gap:10px"><div class="grow" style="width:100%"><div class="t">${esc(e.k)}</div><div class="s">${esc(e.r||'Similar')}: ${esc(e.m)} ${e.mt==='lib'?'(in library)':'(in queue)'}</div></div><div class="btns" style="margin:0">${e.mt==='lib'&&byId(e.mid)?`<button class="btn soft xs" data-act="open-learn" data-id="${esc(e.mid)}">View existing</button>`:''}<button class="btn soft xs" data-act="q-same" data-i="${i}">Same, skip it</button><button class="btn dark xs" data-act="q-diff" data-i="${i}">Different, keep</button></div></div>`).join('')}</div>`;
+ h+=`<h2 class="sec sm">To generate${ready.length?` (${ready.length})`:''}</h2>`;
+ if(ready.length)h+=`<div class="btns" style="margin:-2px 0 12px"><button class="btn dark sm" data-act="q-copy">${ic('copy',18)}${again?`Copy first ${nb} again`:`Copy next ${nb}`}</button></div>
+ <div class="group">${ready.map(({e,i})=>`<div class="row"><div class="grow"><div class="t">${esc(e.k)}</div><div class="s">${qAge(e)}</div></div>${e.c?'<span class="pill orange">Copied</span>':''}<button class="ibtn" data-act="q-rm" data-i="${i}" aria-label="Remove ${esc(e.k)}" style="margin-right:-10px">${ic('x',20)}</button></div>`).join('')}</div><p class="note">Keywords leave this list on their own once you add them to your library.</p>`;
+ else h+=`<div class="group"><div class="row"><div class="grow s">${rev.length?'Nothing ready yet. Decide on the similar ones above.':'Nothing waiting. Paste keywords above to get started.'}</div></div></div>`;
+ return h;
+}
 function viewAdd(){
- const titles={add:'Add keywords',library:'Library',backup:'Backup'};
- const seg=`<div class="seg" role="group" aria-label="Section">${[['add','Paste'],['library','Library'],['backup','Backup']].map(([k,l])=>`<button data-act="seg" data-v="${k}" aria-pressed="${addSeg===k}">${l}</button>`).join('')}</div>`;
+ const titles={queue:'Keyword queue',add:'Add keywords',library:'Library',backup:'Backup'};
+ const seg=`<div class="seg" role="group" aria-label="Section">${[['queue','Queue'],['add','Paste'],['library','Library'],['backup','Backup']].map(([k,l])=>`<button data-act="seg" data-v="${k}" aria-pressed="${addSeg===k}">${l}</button>`).join('')}</div>`;
  let body='';
- if(addSeg==='add')body=`<p class="lead">Paste a keyword with its notes and one or more MCQs. Repeat a keyword to add more questions to the same card. Keywords stay unique.</p>
+ if(addSeg==='queue')body=queueHTML();
+ else if(addSeg==='add')body=`<p class="lead">Paste a keyword with its notes and one or more MCQs. Repeat a keyword to add more questions to the same card. Keywords stay unique.</p>
  <textarea id="paste" class="ta" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Paste keyword data" placeholder="Paste JSON or labelled text. Separate several keywords with ---">${esc(paste)}</textarea>
  <div class="btns"><button class="btn soft sm" data-act="paste-clip">${ic('clip',18)}Paste</button><button class="btn soft sm" data-act="copy-format">${ic('copy',18)}Copy format</button><button class="btn quiet sm" data-act="clear-paste">Clear</button></div>
  <div id="preview">${previewHTML()}</div>`;
@@ -1036,6 +1221,7 @@ function render(opt={}){
  if(tab==='add'&&!session&&addSeg==='add'&&paste.trim())analyze();
  sc.innerHTML=session?viewSession():tab==='home'?viewHome():tab==='learn'?viewLearn():tab==='practice'?viewPractice():viewAdd();
  $('#tabs').innerHTML=tabsHTML();
+ {const hs=sc.querySelector('.hscroll');if(hs)hs.scrollLeft=heatX==null?hs.scrollWidth:heatX}
  if(keep!=null)sc.scrollTop=keep;
  else if(tab==='learn'&&focusId&&!session){const c=document.getElementById('c-'+focusId);if(c){c.scrollIntoView({block:'start'})}focusId=''}
  else sc.scrollTop=session?0:(scrollPos[tab]||0);
@@ -1066,17 +1252,24 @@ function startSession(list,o={}){
  session={ids:spread(list).map(u=>u.uid),i:0,answers:{},correct:0,missed:[],combo:0,best:0,mode:o.mode||'custom',timed:!!o.timed,daily:!!o.daily};
  closeSheet();render();
 }
+/* rankU skips questions already answered right today (or in the last 10 minutes); top up from the rest so a tile never promises more than it delivers */
+function topUp(pool){
+ const ranked=rankU(pool),want=db.size?Math.min(db.size,pool.length):pool.length;
+ if(ranked.length>=want)return cutU(ranked);
+ const have=new Set(ranked.map(u=>u.uid));
+ return cutU([...ranked,...shuffle(pool.filter(u=>!have.has(u.uid)))]);
+}
 function runMode(m){
  let l;const U=allUnits();
  switch(m){
   case 'mix':l=pickSmart(db.size||U.length);break;
   case 'due':l=cutU(dueUnits());break;
-  case 'weak':l=cutU(rankU(weakUnits()));break;
-  case 'fresh':l=cutU(rankU(freshUnits()));break;
-  case 'saved':l=cutU(rankU(savedUnits()));break;
+  case 'weak':l=topUp(weakUnits());break;
+  case 'fresh':l=topUp(freshUnits());break;
+  case 'saved':l=topUp(savedUnits());break;
   case 'sprint':{const a=U.filter(u=>db.qsrs[u.uid]),r=rankU(a,2),p=(r.length?r:a).slice().sort((x,y)=>db.qsrs[x.uid].b-db.qsrs[y.uid].b).slice(0,SPRINT_N);l=p.length>=SPRINT_N?p:[...p,...rankU(freshUnits(),2).filter(u=>!p.includes(u)).slice(0,SPRINT_N-p.length)];break}
-  case 'custom':{const pu=practiceUnits();l=cutU(rankU(pu));if(!l.length)l=cutU(shuffle(pu));break}
-  default:l=cutU(rankU(U));
+  case 'custom':l=topUp(practiceUnits());break;
+  default:l=topUp(U);
  }
  startSession(l,{mode:m,timed:m==='sprint'});
 }
@@ -1088,7 +1281,7 @@ function answer(i){
  if(ok){s.correct++;s.combo++;s.best=Math.max(s.best,s.combo)}else{s.missed.push(id);s.combo=0}
  db.seen.add(x.id);grade(x.id,ok,i<0,slow);gradeQ(id,ok,i<0,slow);
  for(const u of allUnits())if(u.key===x.qkey&&u.uid!==id)gradeQ(u.uid,ok,i<0,slow); /* the same PYQ filed under two keywords counts for both */
- markAnswered(id);persist();buzz(ok?12:[24,40,24]);
+ markAnswered(id,ok);persist();buzz(ok?12:[24,40,24]);
  render({keep:true});
  const e=$('#exp');if(e)e.scrollIntoView({block:'nearest',behavior:smooth()});
 }
@@ -1151,10 +1344,10 @@ function addParsed(){
   QV={};dirty();
  }
  if(!added.size&&!updated.size){toast(bad?'Fix the highlighted items first.':'No valid questions found.');return}
- paste='';persist();render({keep:true});
+ syncQueue();paste='';persist();render({keep:true});
  const a=added.size,u=updated.size;toast(`${a?a+' keyword'+(a===1?'':'s')+' added':''}${a&&u?', ':''}${u?u+' keyword'+(u===1?'':'s')+' updated':''}${nq?` · ${nq} question${nq===1?'':'s'}`:''}${bad?` · ${bad} skipped`:''}`);
 }
-function backupObj(){return {app:'Nitya',formatVersion:6,exportedAt:new Date().toISOString(),items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,qsrs:db.qsrs,daily:db.daily,goal:db.goal,flags:{meta:db.flags.meta||{},kh:db.flags.kh||[]}}}
+function backupObj(){return {app:'Nitya',formatVersion:6,exportedAt:new Date().toISOString(),items:db.items,saved:[...db.saved],seen:[...db.seen],read:[...db.read],srs:db.srs,qsrs:db.qsrs,daily:db.daily,goal:db.goal,flags:{meta:db.flags.meta||{},kh:db.flags.kh||[],rec:db.flags.rec||null,queue:db.flags.queue||[]}}}
 function restoreBackup(b){
  let add=0,upd=0;const now=Date.now(),map={};
  for(const raw of Array.isArray(b.items)?b.items:[]){
@@ -1174,9 +1367,10 @@ function restoreBackup(b){
  for(const u of Object.keys(qr)){const k0=kidOf(u),k=m(k0);if(!k)continue;const nu=k+u.slice(k0.length),cur=db.qsrs[nu];if(!cur||qr[u].l>cur.l)db.qsrs[nu]=qr[u]}
  for(const k of db.seen)if(!db.srs[k])db.srs[k]={b:1,due:addDays(1),r:0,w:0,l:0};
  const d=legacyDaily(b.daily);
- for(const k of Object.keys(d)){const cur=db.daily[k]?.ids||[];db.daily[k]={ids:uniq(cur.concat(d[k].ids))}}
- if(b.flags&&typeof b.flags==='object'){const fm=db.flags.meta||(db.flags.meta={}),bm=b.flags.meta||{};for(const k of Object.keys(bm))if(!fm[k]&&ids.has(k))fm[k]=bm[k];if(!(db.flags.kh||[]).length&&Array.isArray(b.flags.kh))db.flags.kh=b.flags.kh.slice(-14)}
- persist();return {add,upd};
+ for(const k of Object.keys(d)){const cur=db.daily[k]?.ids||[];const o=db.daily[k]||{};db.daily[k]={ids:uniq(cur.concat(d[k].ids)),r:Math.max(o.r||0,d[k].r||0),w:Math.max(o.w||0,d[k].w||0)}}
+ if(b.flags&&typeof b.flags==='object'){const fm=db.flags.meta||(db.flags.meta={}),bm=b.flags.meta||{};for(const k of Object.keys(bm))if(!fm[k]&&ids.has(k))fm[k]=bm[k];if(!(db.flags.kh||[]).length&&Array.isArray(b.flags.kh))db.flags.kh=b.flags.kh.slice(-14);if(b.flags.rec&&typeof b.flags.rec==='object'){const a=db.flags.rec||{},c=b.flags.rec;db.flags.rec={s:Math.max(a.s||0,Number(c.s)||0),d:Math.max(a.d||0,Number(c.d)||0),dd:(a.d||0)>=(Number(c.d)||0)?a.dd:c.dd,w:Math.max(a.w||0,Number(c.w)||0)}}}
+ if(b.flags&&Array.isArray(b.flags.queue)){const q=db.flags.queue||(db.flags.queue=[]);for(const e of b.flags.queue)if(e&&S(e.k)&&!q.some(x=>qn(x.k)===qn(e.k)))q.push({k:S(e.k),d:/^\d{4}-\d{2}-\d{2}$/.test(S(e.d))?e.d:todayKey()})}
+ syncQueue();persist();return {add,upd};
 }
 async function copyText(t){
  try{await navigator.clipboard.writeText(t);return true}catch(_){
@@ -1230,6 +1424,17 @@ $('#shell').addEventListener('click',e=>{
  switch(a){
   case 'theme':{const d=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=d;db.theme=d;persist();const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=d==='dark'?'#0E0E10':'#F6F5F1';render({keep:true});break}
   case 'daily':{const n=todayCount(),rem=Math.max(0,db.goal-n);startSession(pickSmart(rem||5),{mode:'mix',daily:true});break}
+  case 'heat-range':heatR=b.dataset.v;heatSel='';heatX=null;render({keep:true});break;
+  case 'heat-cell':heatSel=heatSel===b.dataset.k?'':b.dataset.k;render({keep:true});break;
+  case 'open-queue':addSeg='queue';go('add');break;
+  case 'q-add':{const list=qParse(qText);if(!list.length){toast('Paste some keywords first.');break}const r=qClassify(list);qLast=r;qText='';persist();render({keep:true});toast([r.add.length?r.add.length+' added to queue':'',r.lib.length?r.lib.length+' already in library':'',r.rev.length?r.rev.length+' to review':''].filter(Boolean).join(', ')||'Nothing new to add');break}
+  case 'q-clip':{try{navigator.clipboard.readText().then(t=>{qText=qText?qText.replace(/\s+$/,'')+'\n'+t:t;render({keep:true})}).catch(()=>toast('Couldn’t read the clipboard. Paste into the box instead.'))}catch(_){toast('Couldn’t read the clipboard. Paste into the box instead.')}break}
+  case 'q-clear-text':qText='';render({keep:true});break;
+  case 'q-last-close':qLast=null;render({keep:true});break;
+  case 'q-copy':{const ok=(db.flags.queue||[]).filter(e=>!e.m);let bt=ok.filter(e=>!e.c).slice(0,10);if(!bt.length&&ok.length){ok.forEach(e=>delete e.c);bt=ok.slice(0,10)}if(!bt.length)break;copyText(bt.map(e=>e.k).join('\n')).then(r=>{if(r){bt.forEach(e=>e.c=1);persist();render({keep:true})}toast(r?`Copied ${bt.length} keyword${bt.length===1?'':'s'}`:'Couldn’t copy here.')});break}
+  case 'q-rm':{const q=db.flags.queue||[],i=Number(b.dataset.i);if(q[i]){q.splice(i,1);persist();render({keep:true})}break}
+  case 'q-same':{const q=db.flags.queue||[],i=Number(b.dataset.i);if(q[i]){q.splice(i,1);persist();render({keep:true});toast('Skipped')}break}
+  case 'q-diff':{const e=(db.flags.queue||[])[Number(b.dataset.i)];if(e){delete e.m;delete e.mt;delete e.mid;delete e.r;persist();render({keep:true});toast('Kept in the queue')}break}
   case 'goal-sheet':openSheet(goalSheetHTML());break;
   case 'set-goal':db.goal=Number(b.dataset.v);persist();closeSheet();render({keep:true});toast(`Goal set to ${db.goal} a day`);break;
   case 'open-learn':learnF=newF();search='';searching=false;focusId=id;session=null;tab='learn';closeSheet();render();break;
@@ -1290,7 +1495,7 @@ $('#shell').addEventListener('click',e=>{
   case 'copy-backup':copyText(JSON.stringify(backupObj())).then(ok=>{if(ok){stamp();render({keep:true})}toast(ok?'Backup copied':'Couldn’t copy here. Use Save backup file.')});break;
   case 'import':$('#file').click();break;
   case 'reset-progress':openSheet(`<div class="shd"><h3>Reset progress?</h3></div><p class="note" style="margin:-6px 0 18px">Streaks, history and the review schedule go back to zero. Your keywords and saved items stay.</p><div class="sgrid" style="margin-top:0"><button class="btn red wide" data-act="reset-go">Reset progress</button><button class="btn soft wide" data-act="close-sheet">Cancel</button></div>`);break;
-  case 'reset-go':db.seen=new Set();db.read=new Set();db.srs={};db.qsrs={};db.daily={};db.resume='';persist();closeSheet();render({keep:true});toast('Progress reset');break;
+  case 'reset-go':db.seen=new Set();db.read=new Set();db.srs={};db.qsrs={};db.daily={};db.flags.rec=null;db.resume='';persist();closeSheet();render({keep:true});toast('Progress reset');break;
  }
 });
 $('#shell').addEventListener('change',e=>{
@@ -1302,8 +1507,10 @@ $('#shell').addEventListener('change',e=>{
  }
 });
 let pT,lT;
+$('#scroll').addEventListener('scroll',e=>{if(e.target.classList&&e.target.classList.contains('hscroll'))heatX=e.target.scrollLeft},true);
 $('#shell').addEventListener('input',e=>{
  if(e.target.id==='q'){clearTimeout(lT);lT=setTimeout(()=>{search=e.target.value;const l=$('#feedlist');if(l){l.innerHTML=feedInner(feedList=feedItems());$('#scroll').scrollTop=0;setupFeed();const p=$('#fprogb');if(p)p.style.width='0'}},120);return}
+ if(e.target.id==='qin'){qText=e.target.value;return}
  if(e.target.id==='lq'){libQ=e.target.value;const l=$('#lib');if(l)l.innerHTML=libraryHTML();return}
  if(e.target.id==='paste'){
   paste=e.target.value;clearTimeout(pT);
