@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#F6F5F1">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nitya">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -198,10 +201,10 @@ button.row:active{background:var(--fill)}
 .hgrid.m .hc,.hgrid.w .hc{border-radius:8px}
 .hgrid.w .hc{aspect-ratio:auto;height:64px;font-size:19px}
 .hc small{font-size:10.5px;font-weight:500;opacity:.75}
-.hc.h1{background:color-mix(in srgb,var(--orange) 28%,transparent)}
-.hc.h2{background:color-mix(in srgb,var(--orange) 50%,transparent)}
-.hc.h3{background:color-mix(in srgb,var(--orange) 75%,transparent)}
-.hc.h4{background:var(--orange);color:#fff}
+.hc.h1{background:color-mix(in srgb,var(--green) 28%,transparent)}
+.hc.h2{background:color-mix(in srgb,var(--green) 50%,transparent)}
+.hc.h3{background:color-mix(in srgb,var(--green) 75%,transparent)}
+.hc.h4{background:var(--green);color:#fff}
 .hc.h3{color:var(--ink)}
 .hc.td{outline:2px solid var(--ink);outline-offset:1px}
 .hc.sel{outline:2px solid var(--blue,#2F6FDE);outline-offset:1px}
@@ -210,7 +213,7 @@ button.row:active{background:var(--fill)}
 .hmon span{white-space:nowrap;overflow:visible}
 .hleg{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:10px;color:var(--ink3);font-size:12px}
 .hleg i{width:11px;height:11px;border-radius:3px;background:var(--fill)}
-.hleg i.h1{background:color-mix(in srgb,var(--orange) 28%,transparent)}.hleg i.h2{background:color-mix(in srgb,var(--orange) 50%,transparent)}.hleg i.h3{background:color-mix(in srgb,var(--orange) 75%,transparent)}.hleg i.h4{background:var(--orange)}
+.hleg i.h1{background:color-mix(in srgb,var(--green) 28%,transparent)}.hleg i.h2{background:color-mix(in srgb,var(--green) 50%,transparent)}.hleg i.h3{background:color-mix(in srgb,var(--green) 75%,transparent)}.hleg i.h4{background:var(--green)}
 .hcap{min-height:20px;margin-top:10px;font-size:14px;color:var(--ink2)}
 .hcap b{color:var(--ink)}
 .covtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -643,9 +646,11 @@ function chooseUnits(us,n,cap){
 const rankU=(us,cap=CAP,n=us.length)=>chooseUnits(us,n,cap);
 const cutU=a=>db.size?a.slice(0,db.size):a;
 function spread(a){a=shuffle(a);for(let i=1;i<a.length;i++){if(a[i].kid===a[i-1].kid){let j=i+1;while(j<a.length&&a[j].kid===a[i-1].kid)j++;if(j<a.length)[a[i],a[j]]=[a[j],a[i]]}}return a}
+const qtKey=()=>pracF.qtype==='PYQ'?'pyq':pracF.qtype==='Original'?'original':'';
+const tf=a=>{const ty=qtKey();return ty?a.filter(u=>u.q.type===ty):a};
 function practiceUnits(){const f=pracF,ty=f.qtype==='PYQ'?'pyq':f.qtype==='Original'?'original':'';return unitsFor(filterItems(f)).filter(u=>!ty||u.q.type===ty)}
-function pickSmart(n,pool){
- const us=unitsFor(pool||db.items),t=todayKey(),got=new Set(),out=[];
+function pickSmart(n,pool,typed){
+ const us=(typed?tf:(a=>a))(unitsFor(pool||db.items)),t=todayKey(),got=new Set(),out=[];
  const rev=u=>{const s=db.qsrs[u.uid];return s&&(s.k===0||s.due<=t)};
  const step=(f,k)=>{if(k<=0)return;chooseUnits(us.filter(u=>!got.has(u.uid)&&f(u)),k,CAP).forEach(u=>{got.add(u.uid);out.push(u)})};
  step(rev,Math.round(n*.6));step(u=>!db.qsrs[u.uid],Math.round(n*.3));step(u=>db.qsrs[u.uid]&&!rev(u),Math.max(1,Math.round(n*.1)));
@@ -660,7 +665,7 @@ function weakTopics(){
  for(const u of allUnits()){const s=db.qsrs[u.uid];if(!s||s.r+s.w===0)continue;const k=u.x.subject+'›'+u.x.topic;const o=g[k]||(g[k]={subject:u.x.subject,topic:u.x.topic,items:[],r:0,w:0});if(!o.items.includes(u.x))o.items.push(u.x);o.r+=s.r;o.w+=s.w}
  return Object.values(g).filter(o=>o.r+o.w>=3&&o.r/(o.r+o.w)<.7).sort((a,b)=>a.r/(a.r+a.w)-b.r/(b.r+b.w)).slice(0,3);
 }
-function totals(){let r=0,w=0,m=0;for(const x of db.items){const s=db.srs[x.id];if(s){r+=s.r;w+=s.w}}for(const u of allUnits()){const s=db.qsrs[u.uid];if(s&&s.b>=4)m++}return {answered:r+w,acc:r+w?Math.round(r/(r+w)*100):null,mastered:m}}
+function totals(){let r=0,w=0,m=0,t=0,n=0;const U=allUnits();for(const u of U){const s=db.qsrs[u.uid];if(s){r+=s.r;w+=s.w;if(s.r+s.w>0)t++;if(s.b>=4)m++}}return {answered:r+w,acc:r+w?Math.round(r/(r+w)*100):null,mastered:m,tried:t,total:U.length}}
 function ago(ts){if(!ts)return 'never';const d=Math.floor((Date.now()-ts)/864e5);return d<1?'today':d===1?'yesterday':d+' days ago'}
 
 /* ---------- central queue: one score per keyword, read by every feature ---------- */
@@ -809,10 +814,13 @@ function statsData(){
  let bw=0;for(const k of keys){let t=0;for(let i=0;i<7;i++){const d=new Date(k+'T00:00:00');d.setDate(d.getDate()-i);t+=N(dateKey(d))}bw=Math.max(bw,t)}
  const w=sum(0,7),pw=sum(7,7),m=sum(0,30),pm=sum(30,30);
  let act=0,r7=0,w7=0;for(let i=0;i<30;i++){const d=new Date();d.setDate(d.getDate()-i);const e=db.daily[dateKey(d)];if(e&&e.ids.length)act++;if(i<7&&e){r7+=e.r||0;w7+=e.w||0}}
+ const runs=[];{let a=null,b=null,len=0;for(const k of keys){if(N(k)>=g){if(b&&dn(k)-dn(b)===1){len++;b=k}else{if(len)runs.push({len,a,b});a=k;b=k;len=1}}}if(len)runs.push({len,a,b})}
+ const tk=todayKey(),yk=dateKey(new Date(Date.now()-864e5));
+ const top3=runs.map(r=>({...r,cur:r.b===tk||r.b===yk})).sort((x,y)=>y.len-x.len||(y.b>x.b?1:-1)).slice(0,3);
  const sk=streak(),old=db.flags.rec||{},rec={s:Math.max(old.s||0,best,sk),d:Math.max(old.d||0,bd),dd:bd>=(old.d||0)?bdd:old.dd,w:Math.max(old.w||0,bw)};
  if(rec.s!==old.s||rec.d!==old.d||rec.w!==old.w||rec.dd!==old.dd){db.flags.rec=rec;persistSoon()}
  const hist=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);hist.push({n:N(dateKey(d)),l:d.toLocaleDateString(undefined,{weekday:'short'}),today:i===0})}
- return {sk,rec,w,pw,m,pm,act,acc:r7+w7>=5?Math.round(r7/(r7+w7)*100):null,hist,today:N(todayKey()),g}
+ return {top3,sk,rec,w,pw,m,pm,act,acc:r7+w7>=5?Math.round(r7/(r7+w7)*100):null,hist,today:N(todayKey()),g}
 }
 const dlt=(a,b,unit)=>{const d=a-b;return `<span class="delta ${d>0?'up':d<0?'dn':'eq'}">${d>0?'▲ +'+d:d<0?'▼ '+d:'same as'} ${unit}</span>`};
 let heatR='month',heatSel='',heatX=null;
@@ -861,8 +869,7 @@ function statsHTML(){
  return `<h2 class="sec">Your stats</h2><div class="group">
  <div><div class="rec3"><div><b>${ic('flame',20,true).replace('<svg','<svg style="color:var(--orange);display:inline;vertical-align:-3px;margin-right:2px"')}${z.sk}</b><span>Current streak</span></div><div><b>${rec.s}</b><span>Best streak</span></div><div><b>${rec.d}</b><span>Best day</span></div></div>
  <div class="nudge ${win?'win':''}">${esc(nudge)}</div></div>
- <div class="mrow"><div class="l">Last 7 days<small>${rec.w>0?`Record week: ${rec.w}`:'Questions solved'}</small></div><div class="v">${z.w}${dlt(z.w,z.pw,'vs last week')}</div></div>
- <div class="mrow"><div class="l">Last 30 days<small>${z.act} active day${z.act===1?'':'s'} of 30</small></div><div class="v">${z.m}${z.pm>0||z.m>0?dlt(z.m,z.pm,'vs prior 30'):''}</div></div>
+ ${z.top3.length?`<div class="mrow" style="display:block"><div class="l" style="font-weight:600;margin-bottom:4px">Top streaks</div>${z.top3.map((r,i)=>{const f=k=>new Date(k+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'});return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0"><div class="l" style="font-size:15px"><span style="color:var(--ink3);font-weight:700;margin-right:8px">${i+1}</span>${r.a===r.b?f(r.a):f(r.a)+' – '+f(r.b)}${r.cur?' <span class="pill green" style="margin-left:6px">Current</span>':''}</div><div class="v" style="font-size:18px">${r.len} day${r.len===1?'':'s'}</div></div>`}).join('')}</div>`:''}
  ${z.acc!=null?`<div class="mrow"><div class="l">7-day accuracy<small>Based on this week’s answers</small></div><div class="v">${z.acc}%</div></div>`:''}
  </div>`;
 }
@@ -870,7 +877,7 @@ function viewHome(){
  const n=todayCount(),goal=db.goal,pct=Math.min(1,n/goal),C=2*Math.PI*42,sk=streak(),done=n>=goal,rem=Math.max(0,goal-n);
  const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push({l:d.toLocaleDateString(undefined,{weekday:'narrow'}),done:(db.daily[dateKey(d)]?.ids||[]).length>=goal,today:i===0})}
  const dark=document.documentElement.dataset.theme==='dark';
- const due=dueUnits().length,tot=totals(),k=kotd(),res=db.resume&&byId(db.resume),weak=weakTopics();
+ const due=dueUnits().length,tot=totals(),k=kotd(),res=db.resume&&byId(db.resume);
  const pk=db.items.length?pickSmart(done?5:rem):[];
  const nd=pk.filter(u=>{const s=db.qsrs[u.uid];return s&&s.due<=todayKey()}).length,nn=pk.filter(u=>!db.qsrs[u.uid]).length;
  const mixline=done?'Extra practice still strengthens recall.':[nd?`${nd} to revise`:'',nn?`${nn} new`:'',pk.length-nd-nn>0?`${pk.length-nd-nn} to reinforce`:''].filter(Boolean).join(', ')||'A mix picked for you';
@@ -889,15 +896,15 @@ function viewHome(){
   <div class="days" role="img" aria-label="Last 7 days">${days.map(d=>`<div class="day ${d.done?'done':''} ${d.today?'today':''}"><i>${d.done?ic('check',16):''}</i>${d.l}</div>`).join('')}</div>
   <button class="btn dark wide" data-act="daily">${done?'Practice more':n?'Continue today’s questions':'Start today’s questions'}</button>
  </section>`:`<section class="goal"><div class="gtitle" style="margin-bottom:4px">Start with a keyword</div><p class="gsub" style="margin-bottom:16px">Paste your first keyword and notes. Nitya turns it into a card to read and a question to practice.</p><button class="btn dark wide" data-tab="add">Add a keyword</button></section>`}
+ ${db.items.length?statsHTML()+heatHTML():''}
  ${recap()}
  ${!storageOK?`<p class="note">This viewer isn’t saving data between sessions. Use Add, then Backup to keep a copy.</p>`:''}
  ${due?`<div class="group" style="margin-top:14px"><div class="row"><span class="chipic t-due">${ic('refresh',20)}</span><div class="grow"><div class="t">${due} due for revision</div><div class="s">Revise before you forget</div></div><button class="btn dark xs" data-act="mode" data-m="due">Revise</button></div></div>`:''}
  ${(db.flags.queue||[]).length?`<div class="group" style="margin-top:14px"><div class="row"><span class="chipic t-due">${ic('clip',20)}</span><div class="grow"><div class="t">${(db.flags.queue||[]).length} keyword${(db.flags.queue||[]).length===1?'':'s'} waiting</div><div class="s">Generate their details and add them</div></div><button class="btn dark xs" data-act="open-queue">Open</button></div></div>`:''}
- ${k?`<h2 class="sec">Keyword of the day</h2><button class="kotd ${paperCls(k.paper)}" data-act="open-learn" data-id="${esc(k.id)}"><span class="tag">${esc(k.paper)}</span><h3>${esc(k.keyword)}</h3><p>${esc(k.points[0]||'')}</p><div class="km"><span>${esc((db.flags.kotd&&db.flags.kotd.why)||why(k))} · ${esc(k.subject)}</span><span class="go">Read${ic('chr',16)}</span></div></button>${related(k)}`:''}
- ${weak.length?`<h2 class="sec">Needs attention</h2><div class="group">${weak.map((w,i)=>`<button class="row" data-act="weak-practice" data-i="${i}"><span class="chipic t-weak">${ic('target',20)}</span><div class="grow"><div class="t">${esc(w.topic)}</div><div class="s">${esc(w.subject)}, ${w.r+w.w} attempts</div></div><span class="pill red">${Math.round(w.r/(w.r+w.w)*100)}%</span></button>`).join('')}</div>`:''}
- ${db.items.length?statsHTML()+heatHTML():''}
+ ${k?`<h2 class="sec">Keyword of the day</h2><button class="kotd ${paperCls(k.paper)}" data-act="open-learn" data-id="${esc(k.id)}"><span class="tag">${esc(k.paper)}</span><h3>${esc(k.keyword)}</h3><p>${esc(k.points[0]||'')}</p><div class="km"><span>${esc((db.flags.kotd&&db.flags.kotd.why)||why(k))} · ${esc(k.subject)}</span><span class="go">Read${ic('chr',16)}</span></div></button>`:''}
  ${db.items.length?`<h2 class="sec">Progress</h2><div class="group"><div class="stats"><div><b>${tot.answered}</b><span>Answered</span></div><div><b>${tot.acc==null?'–':tot.acc+'%'}</b><span>Accuracy</span></div><div><b>${tot.mastered}</b><span>Mastered</span></div></div>
- ${cov.map(c=>`<button class="row cov ${paperCls(c.p)}" data-act="paper-learn" data-v="${esc(c.p)}"><div class="grow"><div class="covtop"><span class="t"><i class="pd"></i>${esc(c.p)}</span><span class="s">${c.m} of ${c.t} questions mastered</span></div><div class="bar"><i class="m" style="width:${c.m/c.t*100}%"></i><i class="l" style="width:${c.l/c.t*100}%"></i></div></div></button>`).join('')}</div>`:''}
+ <div class="mrow"><div class="l">Questions tried<small>Mastered means right on 4 different days</small></div><div class="v">${tot.tried} of ${tot.total}</div></div>
+ ${cov.map(c=>`<button class="row cov ${paperCls(c.p)}" data-act="paper-learn" data-v="${esc(c.p)}"><div class="grow"><div class="covtop"><span class="t"><i class="pd"></i>${esc(c.p)}</span><span class="s">${c.m} mastered · ${c.l} learning · ${Math.max(0,c.t-c.m-c.l)} new</span></div><div class="bar"><i class="m" style="width:${c.t?c.m/c.t*100:0}%"></i><i class="l" style="width:${c.t?c.l/c.t*100:0}%"></i></div></div></button>`).join('')}</div>`:''}
  ${nudge?`<div class="group" style="margin-top:22px"><button class="row" data-act="backup-now"><span class="chipic t-shield">${ic('shield',20)}</span><div class="grow"><div class="t">Save a backup now</div><div class="s">Last backup: ${ago(db.lastBackup)}</div></div>${ic('chr',18)}</button></div>`:''}
  </div>`;
 }
@@ -977,7 +984,7 @@ function srow(label,which,key,list,cur,all){
 function toggleRow(label,on,act,which){return `<button class="row" role="switch" aria-checked="${on}" data-act="${act}" data-which="${which}"><span class="grow t" style="font-weight:400">${label}</span><span class="sw"></span></button>`}
 function filterRows(which){
  const f=which==='learn'?learnF:pracF,o=opts(f);
- return `${srow('Paper',which,'paper',o.papers,f.paper,'All papers')}${srow('Subject',which,'subject',o.subjects,f.subject,'All subjects')}${srow('Topic',which,'topic',o.topics,f.topic,'All topics')}${which==='practice'?srow('Question type',which,'qtype',['PYQ','Original'],f.qtype||'All','All questions'):''}${toggleRow('Saved only',f.saved,'saved-toggle',which)}${which==='learn'?toggleRow('Unread only',f.unread,'unread-toggle',which):''}`;
+ return `${srow('Paper',which,'paper',o.papers,f.paper,'All papers')}${srow('Subject',which,'subject',o.subjects,f.subject,'All subjects')}${srow('Topic',which,'topic',o.topics,f.topic,'All topics')}${toggleRow('Saved only',f.saved,'saved-toggle',which)}${which==='learn'?toggleRow('Unread only',f.unread,'unread-toggle',which):''}`;
 }
 function filterSheetHTML(){
  const n=feedItems().length;
@@ -996,10 +1003,11 @@ function tile(m,cls,icon,count,label,empty){
  return `<button class="tile ${cls}" data-act="mode" data-m="${m}" ${count?'':'disabled'}><span class="chipic">${ic(icon,20)}</span><div><b>${count}</b><span class="l">${count?label:empty}</span></div></button>`;
 }
 function viewPractice(){
- const all=practiceUnits().length,m=db.size?Math.min(db.size,all):all,due=dueUnits().length,weak=weakUnits().length,fresh=freshUnits().length,saved=savedUnits().length;
- const UN=allUnits().length,smartN=UN?Math.min(db.size||UN,UN):0;
+ const all=practiceUnits().length,m=db.size?Math.min(db.size,all):all,due=tf(dueUnits()).length,weak=tf(weakUnits()).length,fresh=tf(freshUnits()).length,saved=tf(savedUnits()).length;
+ const UN=tf(allUnits()).length,smartN=UN?Math.min(db.size||UN,UN):0;
  return `<div class="page"><div class="hdr"><h1 class="large">Practice</h1></div>
  <p class="lead">Pick a mode. Your answers decide what comes back next.</p>
+ <div class="seg" role="group" aria-label="Question type" style="margin:6px 0 20px">${[['All','All'],['PYQ','PYQ only'],['Original','Original']].map(([v,l])=>`<button data-act="qtype" data-v="${v}" aria-pressed="${(pracF.qtype||'All')===v}">${l}</button>`).join('')}</div>
  <button class="mix" data-act="mode" data-m="mix" ${smartN?'':'disabled'}><div class="mt"><h3>Smart mix</h3><p>${smartN} question${smartN===1?'':'s'}. Due first, then weak spots, then new.</p></div><span class="go">${ic('play',22)}</span></button>
  <div class="tiles">${tile('due','t-due','refresh',due,'due for revision','All caught up')}${tile('weak','t-weak','target',weak,'weak spots','No weak spots')}${tile('fresh','t-new','spark',fresh,'not tried yet','All tried')}${tile('saved','t-saved','bookmark',saved,'saved','Nothing saved')}
  <button class="tile wide t-sprint" data-act="mode" data-m="sprint" ${db.items.length?'':'disabled'}><span class="chipic">${ic('bolt',20)}</span><div class="tx"><b>Sprint</b><span class="l">${SPRINT_N} questions, ${SPRINT_MS/1000} seconds each</span></div>${ic('chr',18)}</button></div>
@@ -1178,17 +1186,20 @@ function syncQueue(){
 const qAge=e=>{const d=dn(todayKey())-dn(e.d||todayKey());return d<=0?'Added today':d===1?'Waiting 1 day':`Waiting ${d} days`};
 function queueHTML(){
  syncQueue();
- const q=db.flags.queue||[],all=q.map((e,i)=>({e,i})),ready=all.filter(o=>!o.e.m),rev=all.filter(o=>o.e.m),fresh=ready.filter(o=>!o.e.c);
- const nb=Math.min(10,fresh.length||ready.length),again=!fresh.length&&ready.length>0;
+ const q=db.flags.queue||[],all=q.map((e,i)=>({e,i})),ready=all.filter(o=>!o.e.m),rev=all.filter(o=>o.e.m);
  let h=`<p class="lead">Paste the keywords from today’s paper. Ones already in your library are dropped, and the rest wait here until you add their details.</p>
- <textarea id="qin" class="ta" style="min-height:140px" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Paste newspaper keywords" placeholder="One keyword per line, or separated by commas">${esc(qText)}</textarea>
+ <textarea id="qin" class="ta" style="min-height:140px" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Paste newspaper keywords" placeholder="One keyword per line, or one line separated by commas">${esc(qText)}</textarea>
  <div class="btns"><button class="btn dark sm" data-act="q-add">Check and add</button><button class="btn soft sm" data-act="q-clip">${ic('clip',18)}Paste</button><button class="btn quiet sm" data-act="q-clear-text">Clear</button></div>`;
  if(qLast){const r=qLast;h+=`<h2 class="sec sm">Last check</h2><div class="group"><div class="row"><div class="grow"><div class="t">${r.n} pasted</div><div class="s">${[r.add.length?r.add.length+' new':'',r.lib.length?r.lib.length+' already in library':'',r.rev.length?r.rev.length+' to review':'',(r.dup.length+r.inq.length)?(r.dup.length+r.inq.length)+' repeated':''].filter(Boolean).join(' · ')||'Nothing to add'}</div></div><button class="btn quiet xs" data-act="q-last-close">Hide</button></div>
  ${r.lib.map(x=>`<button class="row" data-act="open-learn" data-id="${esc(x.id)}"><div class="grow"><div class="t">${esc(x.k)}</div><div class="s">Already in library${qn(x.k)===qn(x.name)&&x.k===x.name?'':' as '+esc(x.name)}</div></div><span class="pill green">Have it</span></button>`).join('')}</div>`}
  if(rev.length)h+=`<h2 class="sec sm">Needs your call</h2><p class="note" style="margin:-6px 0 10px">These look similar to something you already have. They stay out of the copy list until you decide.</p><div class="group">${rev.map(({e,i})=>`<div class="row" style="align-items:flex-start;flex-direction:column;gap:10px"><div class="grow" style="width:100%"><div class="t">${esc(e.k)}</div><div class="s">${esc(e.r||'Similar')}: ${esc(e.m)} ${e.mt==='lib'?'(in library)':'(in queue)'}</div></div><div class="btns" style="margin:0">${e.mt==='lib'&&byId(e.mid)?`<button class="btn soft xs" data-act="open-learn" data-id="${esc(e.mid)}">View existing</button>`:''}<button class="btn soft xs" data-act="q-same" data-i="${i}">Same, skip it</button><button class="btn dark xs" data-act="q-diff" data-i="${i}">Different, keep</button></div></div>`).join('')}</div>`;
  h+=`<h2 class="sec sm">To generate${ready.length?` (${ready.length})`:''}</h2>`;
- if(ready.length)h+=`<div class="btns" style="margin:-2px 0 12px"><button class="btn dark sm" data-act="q-copy">${ic('copy',18)}${again?`Copy first ${nb} again`:`Copy next ${nb}`}</button></div>
- <div class="group">${ready.map(({e,i})=>`<div class="row"><div class="grow"><div class="t">${esc(e.k)}</div><div class="s">${qAge(e)}</div></div>${e.c?'<span class="pill orange">Copied</span>':''}<button class="ibtn" data-act="q-rm" data-i="${i}" aria-label="Remove ${esc(e.k)}" style="margin-right:-10px">${ic('x',20)}</button></div>`).join('')}</div><p class="note">Keywords leave this list on their own once you add them to your library.</p>`;
+ if(ready.length){
+  const sel=ready.filter(o=>o.e.s).length,nNew=ready.filter(o=>!o.e.c&&!o.e.s).length;
+  h+=`<button class="btn dark wide" data-act="q-copy-sel" ${sel?'':'disabled'}>${ic('copy',18)}${sel?`Copy ${sel} selected`:'Tap keywords to select'}</button>
+  <div class="btns" style="margin:8px 0 12px"><button class="btn soft xs" data-act="q-pick-next" ${nNew?'':'disabled'}>Select next 10</button>${sel?`<button class="btn quiet xs" data-act="q-sel-clear">Clear</button>`:''}</div>
+  <div class="group">${ready.map(({e,i})=>`<div class="row" style="${e.c&&!e.s?'opacity:.55':''}"><button class="grow" data-act="q-toggle" data-i="${i}" role="checkbox" aria-checked="${!!e.s}" style="display:flex;align-items:center;gap:12px;text-align:left;background:none;border:0;padding:0;color:inherit;font:inherit"><span style="flex:none;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;${e.s?'background:var(--green);color:#fff':'box-shadow:inset 0 0 0 2px var(--ink3)'}">${e.s?ic('check',16):''}</span><span><span class="t" style="display:block">${esc(e.k)}</span><span class="s" style="display:block">${qAge(e)}</span></span></button>${e.c?`<button class="btn xs" data-act="q-uncopy" data-i="${i}" aria-label="Copied. Tap to mark as not copied" style="background:var(--orange-soft);color:var(--orange-ink)">Copied</button>`:''}<button class="ibtn" data-act="q-rm" data-i="${i}" aria-label="Remove ${esc(e.k)}" style="margin-right:-10px">${ic('x',20)}</button></div>`).join('')}</div>
+  <p class="note">Tap a keyword to select it, then copy. Tap “Copied” to undo it. Keywords leave this list once you add them to your library.</p>`}
  else h+=`<div class="group"><div class="row"><div class="grow s">${rev.length?'Nothing ready yet. Decide on the similar ones above.':'Nothing waiting. Paste keywords above to get started.'}</div></div></div>`;
  return h;
 }
@@ -1262,14 +1273,14 @@ function topUp(pool){
 function runMode(m){
  let l;const U=allUnits();
  switch(m){
-  case 'mix':l=pickSmart(db.size||U.length);break;
-  case 'due':l=cutU(dueUnits());break;
-  case 'weak':l=topUp(weakUnits());break;
-  case 'fresh':l=topUp(freshUnits());break;
-  case 'saved':l=topUp(savedUnits());break;
-  case 'sprint':{const a=U.filter(u=>db.qsrs[u.uid]),r=rankU(a,2),p=(r.length?r:a).slice().sort((x,y)=>db.qsrs[x.uid].b-db.qsrs[y.uid].b).slice(0,SPRINT_N);l=p.length>=SPRINT_N?p:[...p,...rankU(freshUnits(),2).filter(u=>!p.includes(u)).slice(0,SPRINT_N-p.length)];break}
+  case 'mix':l=pickSmart(db.size||U.length,null,true);break;
+  case 'due':l=cutU(tf(dueUnits()));break;
+  case 'weak':l=topUp(tf(weakUnits()));break;
+  case 'fresh':l=topUp(tf(freshUnits()));break;
+  case 'saved':l=topUp(tf(savedUnits()));break;
+  case 'sprint':{const a=tf(U).filter(u=>db.qsrs[u.uid]),r=rankU(a,2),p=(r.length?r:a).slice().sort((x,y)=>db.qsrs[x.uid].b-db.qsrs[y.uid].b).slice(0,SPRINT_N);l=p.length>=SPRINT_N?p:[...p,...rankU(tf(freshUnits()),2).filter(u=>!p.includes(u)).slice(0,SPRINT_N-p.length)];break}
   case 'custom':l=topUp(practiceUnits());break;
-  default:l=topUp(U);
+  default:l=topUp(tf(U));
  }
  startSession(l,{mode:m,timed:m==='sprint'});
 }
@@ -1431,7 +1442,11 @@ $('#shell').addEventListener('click',e=>{
   case 'q-clip':{try{navigator.clipboard.readText().then(t=>{qText=qText?qText.replace(/\s+$/,'')+'\n'+t:t;render({keep:true})}).catch(()=>toast('Couldn’t read the clipboard. Paste into the box instead.'))}catch(_){toast('Couldn’t read the clipboard. Paste into the box instead.')}break}
   case 'q-clear-text':qText='';render({keep:true});break;
   case 'q-last-close':qLast=null;render({keep:true});break;
-  case 'q-copy':{const ok=(db.flags.queue||[]).filter(e=>!e.m);let bt=ok.filter(e=>!e.c).slice(0,10);if(!bt.length&&ok.length){ok.forEach(e=>delete e.c);bt=ok.slice(0,10)}if(!bt.length)break;copyText(bt.map(e=>e.k).join('\n')).then(r=>{if(r){bt.forEach(e=>e.c=1);persist();render({keep:true})}toast(r?`Copied ${bt.length} keyword${bt.length===1?'':'s'}`:'Couldn’t copy here.')});break}
+  case 'q-toggle':{const e=(db.flags.queue||[])[Number(b.dataset.i)];if(!e)break;if(e.s)delete e.s;else e.s=1;persist();render({keep:true});break}
+  case 'q-uncopy':{const e=(db.flags.queue||[])[Number(b.dataset.i)];if(!e)break;delete e.c;persist();render({keep:true});toast('Marked as not copied');break}
+  case 'q-pick-next':{const q=(db.flags.queue||[]).filter(e=>!e.m&&!e.c&&!e.s).slice(0,10);if(!q.length)break;q.forEach(e=>e.s=1);persist();render({keep:true});toast(`${q.length} added to copy list`);break}
+  case 'q-sel-clear':{(db.flags.queue||[]).forEach(e=>{delete e.s});persist();render({keep:true});break}
+  case 'q-copy-sel':{const sel=(db.flags.queue||[]).filter(e=>!e.m&&e.s);if(!sel.length)break;copyText(sel.map(e=>e.k).join('\n')).then(r=>{if(r){sel.forEach(e=>{e.c=1;delete e.s});persist();render({keep:true})}toast(r?`Copied ${sel.length} keyword${sel.length===1?'':'s'}`:'Couldn’t copy here.')});break}
   case 'q-rm':{const q=db.flags.queue||[],i=Number(b.dataset.i);if(q[i]){q.splice(i,1);persist();render({keep:true})}break}
   case 'q-same':{const q=db.flags.queue||[],i=Number(b.dataset.i);if(q[i]){q.splice(i,1);persist();render({keep:true});toast('Skipped')}break}
   case 'q-diff':{const e=(db.flags.queue||[])[Number(b.dataset.i)];if(e){delete e.m;delete e.mt;delete e.mid;delete e.r;persist();render({keep:true});toast('Kept in the queue')}break}
@@ -1464,6 +1479,7 @@ $('#shell').addEventListener('click',e=>{
   case 'saved-toggle':{const w=b.dataset.which,f=w==='learn'?learnF:pracF;f.saved=!f.saved;if(w==='learn'){$('#sbody').innerHTML=filterSheetHTML();renderFeedList()}else render({keep:true});break}
   case 'unread-toggle':learnF.unread=!learnF.unread;$('#sbody').innerHTML=filterSheetHTML();renderFeedList();break;
   case 'mode':runMode(b.dataset.m);break;
+  case 'qtype':pracF.qtype=b.dataset.v;render({keep:true});break;
   case 'size':db.size=Number(b.dataset.v);persist();render({keep:true});break;
   case 'weak-practice':{const w=weakTopics()[Number(b.dataset.i)];if(w){const us=unitsFor(w.items),wk=us.filter(u=>{const s=db.qsrs[u.uid];return s&&s.w>0}),r=rankU(wk.length?wk:us,0);startSession(cutU(r.length?r:shuffle(us)),{mode:'weak'})}break}
   case 'reset-practice':pracF=newF();render({keep:true});break;
@@ -1528,6 +1544,7 @@ $('#file').addEventListener('change',e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')persist()});
+addEventListener('pagehide',()=>{clearTimeout(psT);persist()});
 render();
 })();
 </script>
