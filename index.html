@@ -214,7 +214,7 @@ button.row:active{background:var(--fill)}
 .hleg{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:10px;color:var(--ink3);font-size:12px}
 .hleg i{width:11px;height:11px;border-radius:3px;background:var(--fill)}
 .hleg i.h1{background:color-mix(in srgb,var(--green) 28%,transparent)}.hleg i.h2{background:color-mix(in srgb,var(--green) 50%,transparent)}.hleg i.h3{background:color-mix(in srgb,var(--green) 75%,transparent)}.hleg i.h4{background:var(--green)}
-.hcap{min-height:20px;margin-top:10px;font-size:14px;color:var(--ink2)}
+.hnav{display:flex;align-items:center;justify-content:space-between;margin:2px 0 6px}.hnav .ibtn{width:36px;height:36px}.hnav .ibtn:disabled{opacity:.3}.hlab{display:flex;align-items:center;gap:8px;font-size:15px}.hlab b{font-weight:650}.hcap{min-height:20px;margin-top:10px;font-size:14px;color:var(--ink2)}
 .hcap b{color:var(--ink)}
 .covtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .pd{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--pc);margin-right:9px}
@@ -534,7 +534,7 @@ const hadLS=!!readJSON(KEY,null);let mirrorOK=hadLS,snap='';
 const IDB={open(){return new Promise((r,j)=>{const q=indexedDB.open('nitya',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)})},async set(v){try{const d=await this.open();d.transaction('kv','readwrite').objectStore('kv').put(v,'db')}catch(_){}},async get(){try{const d=await this.open();return await new Promise(r=>{const q=d.transaction('kv').objectStore('kv').get('db');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)})}catch(_){return null}}};
 let UC=null,UM=null,UK=null;
 function dirty(){UC=null;UM=null;UK=null}
-const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},qsrs:{},daily:{},theme:null,goal:5,size:10,resume:'',lastBackup:0,flags:{}};
+const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},qsrs:{},daily:{},theme:null,goal:3,size:10,resume:'',lastBackup:0,flags:{}};
 (function load(){
  let st=readJSON(KEY,null);
  if(!st||typeof st!=='object'){
@@ -550,12 +550,12 @@ const db={items:[],saved:new Set(),seen:new Set(),read:new Set(),srs:{},qsrs:{},
  db.qsrs=cleanSrs(st.qsrs);
  db.daily=legacyDaily(st.daily);
  db.theme=st.theme||document.documentElement.dataset.theme;
- db.goal=GOALS.includes(Number(st.goal))?Number(st.goal):5;
+ db.goal=GOALS.includes(Number(st.goal))?Number(st.goal):3;
  db.size=SIZES.includes(Number(st.size))?Number(st.size):10;
  db.resume=ids.has(st.resume)?st.resume:'';
  db.lastBackup=Number(st.lastBackup)||0;
  db.flags=st.flags&&typeof st.flags==='object'?st.flags:{};
- if(!db.flags.g5){db.flags.g5=1;if(db.goal===3)db.goal=5} /* default daily goal moved from 3 to 5 */
+ db.flags.g5=1;if(!db.flags.g3){db.flags.g3=1;db.goal=3} /* default daily goal is 3; applied once, you can still change it */
  /* older progress: questions already answered start in the review cycle */
  for(const id of db.seen)if(ids.has(id)&&!db.srs[id])db.srs[id]={b:1,due:addDays(1),r:0,w:0,l:0};
  /* keywords that only had one question keep their progress at question level */
@@ -823,28 +823,34 @@ function statsData(){
  return {top3,sk,rec,w,pw,m,pm,act,acc:r7+w7>=5?Math.round(r7/(r7+w7)*100):null,hist,today:N(todayKey()),g}
 }
 const dlt=(a,b,unit)=>{const d=a-b;return `<span class="delta ${d>0?'up':d<0?'dn':'eq'}">${d>0?'▲ +'+d:d<0?'▼ '+d:'same as'} ${unit}</span>`};
-let heatR='month',heatSel='',heatX=null;
+let heatR='month',heatSel='',heatX=null,heatOff=0;
 const hlv=(n,g)=>n<=0?0:n>=2*g?4:n>=g?3:n>=Math.ceil(g/2)?2:1;
 function heatHTML(){
- const g=db.goal,N=k=>(db.daily[k]?.ids||[]).length,len=heatR==='week'?7:heatR==='month'?30:365,days=[];
- for(let i=len-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dateKey(d);days.push({d,k,n:N(k),i})}
- let prev=0;for(let i=len;i<2*len;i++){const d=new Date();d.setDate(d.getDate()-i);prev+=N(dateKey(d))}
+ const g=db.goal,N=k=>(db.daily[k]?.ids||[]).length,days=[],T=new Date();T.setHours(0,0,0,0);
+ const span=off=>{let a,b;if(heatR==='week'){a=new Date(T);a.setDate(T.getDate()-T.getDay()+7*off);b=new Date(a);b.setDate(a.getDate()+6)}else if(heatR==='month'){a=new Date(T.getFullYear(),T.getMonth()+off,1);b=new Date(a.getFullYear(),a.getMonth()+1,0)}else{a=new Date(T.getFullYear()+off,0,1);b=new Date(a.getFullYear(),11,31)}return [a,b]};
+ const [ra,rb]=span(heatOff),[pa,pb]=span(heatOff-1);
+ for(let d=new Date(ra);d<=rb;d.setDate(d.getDate()+1)){const c=new Date(d),k=dateKey(c),fut=c>T;days.push({d:c,k,n:fut?0:N(k),i:Math.round((T-c)/864e5),fut})}
+ let prev=0;for(let d=new Date(pa);d<=pb;d.setDate(d.getDate()+1))prev+=N(dateKey(d));
+ const earliest=Object.keys(db.daily).filter(k=>N(k)>0).sort()[0]||todayKey(),canPrev=dateKey(ra)>earliest,len=days.length;
  const tot=days.reduce((a,x)=>a+x.n,0),act=days.filter(x=>x.n>0).length,hit=days.filter(x=>x.n>=g).length,bd=days.reduce((a,x)=>x.n>a.n?x:a,{n:0,k:''});
  let bs=0,run=0;for(const x of days){run=x.n>=g?run+1:0;bs=Math.max(bs,run)}
  const pad=days[0].d.getDay(),fmt=(d,o)=>d.toLocaleDateString(undefined,o);
- const cell=x=>{const l=hlv(x.n,g),cls=`hc h${l} ${x.i===0?'td':''} ${heatSel===x.k?'sel':''}`,lab=`${fmt(x.d,{weekday:'short',day:'numeric',month:'short'})}: ${x.n} question${x.n===1?'':'s'}`;
+ const cell=x=>{if(x.fut)return `<span class="hc e">${heatR==='week'?`<small>${esc(fmt(x.d,{weekday:'short'}))}</small>`:heatR==='month'?`<small>${x.d.getDate()}</small>`:''}</span>`;const l=hlv(x.n,g),cls=`hc h${l} ${x.i===0?'td':''} ${heatSel===x.k?'sel':''}`,lab=`${fmt(x.d,{weekday:'short',day:'numeric',month:'short'})}: ${x.n} question${x.n===1?'':'s'}`;
   const inner=heatR==='week'?`<small>${esc(fmt(x.d,{weekday:'short'}))}</small>${x.n}`:heatR==='month'?`<small>${x.d.getDate()}</small>`:'';
   return `<button class="${cls}" data-act="heat-cell" data-k="${x.k}" aria-label="${esc(lab)}">${inner}</button>`};
  let grid;
  if(heatR==='year'){const cols=Math.ceil((pad+len)/7),labs=Array(cols).fill('');let lastM=-1;
   for(let c=0;c<cols;c++){const x=days[Math.max(0,c*7-pad)];if(x){const m=x.d.getMonth();if(m!==lastM&&(c>0||x.d.getDate()<=20)){if(!(c>cols-3&&labs.slice(-2).some(Boolean)))labs[c]=fmt(x.d,{month:'short'})}lastM=m}}
-  grid=`<div class="hscroll" tabindex="0" aria-label="Year of activity, scrolls sideways"><div style="width:${cols*13}px"><div class="hmon" style="grid-template-columns:repeat(${cols},11px)">${labs.map(l=>`<span>${esc(l)}</span>`).join('')}</div><div class="hgrid y" style="grid-template-columns:repeat(${cols},11px)">${Array(pad).fill('<span class="hc e"></span>').join('')}${days.map(cell).join('')}</div></div></div>`}
+  grid=`<div class="hscroll" data-tc="${Math.floor((pad+Math.max(0,days.findIndex(x=>x.i===0)))/7)}" data-off="${heatOff}" tabindex="0" aria-label="Year of activity, scrolls sideways"><div style="width:${cols*13}px"><div class="hmon" style="grid-template-columns:repeat(${cols},11px)">${labs.map(l=>`<span>${esc(l)}</span>`).join('')}</div><div class="hgrid y" style="grid-template-columns:repeat(${cols},11px)">${Array(pad).fill('<span class="hc e"></span>').join('')}${days.map(cell).join('')}</div></div></div>`}
  else if(heatR==='month')grid=`<div class="hgrid m">${Array(pad).fill('<span class="hc e"></span>').join('')}${days.map(cell).join('')}</div>`;
  else grid=`<div class="hgrid w">${days.map(cell).join('')}</div>`;
  const sel=days.find(x=>x.k===heatSel),cap=sel?`<b>${esc(fmt(sel.d,{weekday:'long',day:'numeric',month:'long'}))}</b> · ${sel.n} question${sel.n===1?'':'s'}${sel.n>=g?' · goal met':sel.n?` · ${g-sel.n} short of goal`:''}`:'Tap a day for details.';
- const d=tot-prev,unit=heatR==='week'?'previous week':heatR==='month'?'previous 30 days':'previous year',nm=heatR==='week'?'7 days':heatR==='month'?'30 days':'year';
+ const d=tot-prev,unit=heatR==='week'?'previous week':heatR==='month'?'previous month':'previous year',nm=heatR==='week'?'this week':heatR==='month'?'this month':'this year';
+ const fm=(x,o)=>x.toLocaleDateString(undefined,o),mo=x=>fm(x,{month:'short'}),label=heatR==='week'?(ra.getMonth()===rb.getMonth()?`${ra.getDate()}–${rb.getDate()} ${mo(rb)}`:`${ra.getDate()} ${mo(ra)} – ${rb.getDate()} ${mo(rb)}`)+(rb.getFullYear()!==T.getFullYear()?' '+rb.getFullYear():''):heatR==='month'?fm(ra,{month:'long',year:'numeric'}):String(ra.getFullYear());
+ const nav=`<div class="hnav"><button class="ibtn" data-act="heat-nav" data-v="-1" ${canPrev?'':'disabled'} aria-label="Previous ${heatR}"><span style="display:inline-flex;transform:rotate(180deg)">${ic('chr',20)}</span></button><div class="hlab"><b>${esc(label)}</b>${heatOff<0?`<button class="btn quiet xs" data-act="heat-nav" data-v="0">Today</button>`:''}</div><button class="ibtn" data-act="heat-nav" data-v="1" ${heatOff<0?'':'disabled'} aria-label="Next ${heatR}">${ic('chr',20)}</button></div>`;
  return `<h2 class="sec">Activity</h2><div class="group"><div class="heat">
  <div class="seg" role="group" aria-label="Range">${[['week','Week'],['month','Month'],['year','Year']].map(([k,l])=>`<button data-act="heat-range" data-v="${k}" aria-pressed="${heatR===k}">${l}</button>`).join('')}</div>
+ ${nav}
  ${grid}
  <div class="hcap" aria-live="polite">${cap}</div>
  <div class="hleg">Less<i></i><i class="h1"></i><i class="h2"></i><i class="h3"></i><i class="h4"></i>More</div>
@@ -852,7 +858,7 @@ function heatHTML(){
  <div class="group" style="margin-top:12px"><div class="rec3"><div><b>${tot}</b><span>Solved</span></div><div><b>${act}</b><span>Active days</span></div><div><b>${hit}</b><span>Goal days</span></div></div>
  <div class="mrow"><div class="l">Best day<small>${bd.n?esc(fmt(new Date(bd.k+'T00:00:00'),{weekday:'short',day:'numeric',month:'short'})):'No activity yet'}</small></div><div class="v">${bd.n}</div></div>
  <div class="mrow"><div class="l">Longest streak<small>Days in a row at ${g}+ questions</small></div><div class="v">${bs}</div></div>
- <div class="mrow"><div class="l">Average per active day<small>Past ${nm}</small></div><div class="v">${act?(tot/act).toFixed(1):'–'}</div></div>
+ <div class="mrow"><div class="l">Average per active day<small>In ${nm}</small></div><div class="v">${act?(tot/act).toFixed(1):'–'}</div></div>
  <div class="mrow"><div class="l">Compared with ${unit}<small>${prev} solved then</small></div><div class="v">${d>0?'+'+d:d<0?String(d):'0'}<span class="delta ${d>0?'up':d<0?'dn':'eq'}">${d>0?'▲ ahead':d<0?'▼ behind':'level'}</span></div></div>
  </div>`;
 }
@@ -1237,7 +1243,7 @@ function render(opt={}){
  if(tab==='add'&&!session&&addSeg==='add'&&paste.trim())analyze();
  sc.innerHTML=session?viewSession():tab==='home'?viewHome():tab==='learn'?viewLearn():tab==='practice'?viewPractice():viewAdd();
  $('#tabs').innerHTML=tabsHTML();
- {const hs=sc.querySelector('.hscroll');if(hs)hs.scrollLeft=heatX==null?hs.scrollWidth:heatX}
+ {const hs=sc.querySelector('.hscroll');if(hs)hs.scrollLeft=heatX==null?(hs.dataset.off==='0'?Math.max(0,Number(hs.dataset.tc)*13-hs.clientWidth+70):0):heatX}
  if(keep!=null)sc.scrollTop=keep;
  else if(tab==='learn'&&focusId&&!session){const c=document.getElementById('c-'+focusId);if(c){c.scrollIntoView({block:'start'})}focusId=''}
  else sc.scrollTop=session?0:(scrollPos[tab]||0);
@@ -1495,7 +1501,8 @@ $('#shell').addEventListener('click',e=>{
  switch(a){
   case 'theme':{const d=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=d;db.theme=d;persist();const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=d==='dark'?'#0E0E10':'#F6F5F1';render({keep:true});break}
   case 'daily':{const n=todayCount(),rem=Math.max(0,db.goal-n);startSession(pickSmart(rem||5),{mode:'mix',daily:true});break}
-  case 'heat-range':heatR=b.dataset.v;heatSel='';heatX=null;render({keep:true});break;
+  case 'heat-range':heatR=b.dataset.v;heatOff=0;heatSel='';heatX=null;render({keep:true});break;
+  case 'heat-nav':{const v=Number(b.dataset.v);heatOff=v===0?0:Math.min(0,heatOff+v);heatSel='';heatX=null;render({keep:true});break}
   case 'heat-cell':heatSel=heatSel===b.dataset.k?'':b.dataset.k;render({keep:true});break;
   case 'open-queue':addSeg='queue';go('add');break;
   case 'q-add':{const list=qParse(qText);if(!list.length){toast('Paste some keywords first.');break}const r=qClassify(list);qLast=r;qText='';persist();render({keep:true});toast([r.add.length?r.add.length+' added to queue':'',r.lib.length?r.lib.length+' already in library':'',r.rev.length?r.rev.length+' to review':''].filter(Boolean).join(', ')||'Nothing new to add');break}
